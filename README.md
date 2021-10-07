@@ -56,12 +56,12 @@ ANGSD, R & python
     *  use the following script:
 * To complete
 ## 6. Looking for parallelism
-To fill
+(To fill)
 ## 7. PBS analyses 
-To fill
+(To fill)
 
 ## 8. Association between recombination and outliers
-To fill
+(To fill)
 
 ## 9. looking for candidate
   * No GO enrichment instead I only use SNPeff and look for meaningfull outliers.
