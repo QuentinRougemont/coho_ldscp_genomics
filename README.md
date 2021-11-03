@@ -227,8 +227,8 @@ plink --vcf $INPUT \
 
 #prepare a cluster file
 strata $INPUT strata.txt
-cut -d "_" -f2 new.ind.tmp > col2
-cut -d "_" -f1 new.ind.tmp > col1
+cut -f1 strata.txt > col1
+cut -d "_" -f2 strata.txt > col2
 paste col1 col2 col1 > cluster.dat
 
 #now compute allele frequency for RDA:
