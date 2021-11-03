@@ -51,6 +51,7 @@ function strata () { cat <(grep "CHR" "$1" ) |\
 
 ## 2. Filter vcf and perform quality checks
     (to fill)
+
 ## 3. Compute genetic diversity and plot it
 
 first convert vcf into hierfstat and other usefull input 
@@ -85,31 +86,37 @@ cut -d " " -f 3 $snp |perl -pe "s/\n/\t/g" > snp_id.tmp
 paste loc.tmp snp_id.tmp > loc.tmp
 cat loc.tmp hierfstat.data.tmp > hierfstat.data.txt
 rm *tmp
-
 ```
+
 then use R to compute basic statistics (Hs, Ho, Fis, Bst, in hierfstat) 
 
 the scripts:  
+
 ```
 00-scripts/diversity/00.vcf2hierfstats.sh
 00-scripts/diversity/01.hierfstats.R
 ``
+
 should procude all the results. 
 
-The second script run on a cluster with >50Gb of RAM  
-
+The second script run on a cluster with >50Gb of RAM  :
 ```
 Rscript ./00-scripts/diversity/01.hierfstats.R
 ```
-     
-## 4. Perform PCA and VAE analyses
+
+
+Then we will perform plots of the correlation between the distance to the southernmost site and Bst and Hs statistics.  
+
+
+## 4. Perform PCA and VAE analyses  
      (to fill)
-     
-     
+
+
 ## 5. GEA Analyses:
 
- We first need to filter the data to exclude 2 populations, namely BNV and SAI for which environmental data are not available.
- ```bash
+ We first need to filter the data to exclude 2 populations, namely BNV and SAI for which environmental data are not available. 
+
+```bash
  #################################################################################
 #                           preparing data for RDA and GEA
 #################################################################################
