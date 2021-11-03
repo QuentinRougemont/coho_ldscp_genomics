@@ -27,6 +27,14 @@ for filtration:
 
 ANGSD, R & python
 
+#I like to use the following fonction in my .bashrc :
+
+```bash
+function strata () { cat <(grep "CHR" "$1" ) |\
+    cut -f 10- |\                                  
+    perl -pe 's/\t/\n/g' | \
+              sed 's/_/\t/g' | awk '{print $1"\t"$1"_"$2}' > "$2"; }
+```
 
 # Steps :
 
@@ -79,20 +87,143 @@ cat loc.tmp hierfstat.data.tmp > hierfstat.data.txt
 rm *tmp
 
 ```
-then use R to compute basic statistics (Hs, Ho, Fis, Bst, in hierfstat)
+then use R to compute basic statistics (Hs, Ho, Fis, Bst, in hierfstat) 
+the scripts located in 00-scripts/01.hierfstats.R should procude all the results. It run on a cluster with >50Gb of RAM
+```
 Rscript ./00-scripts/01.hierfstats.R
-
+```
      
 ## 4. Perform PCA and VAE analyses
      (to fill)
+     
+     
 ## 5. GEA Analyses:
-  * RDA analyses:
-    * use the Rscript to perform the GEA
-    * Test significance with the following script
-    * Plot de data
-  *  LFMM analyses
-    *  use the following script:
-* To complete
+
+ We first need to filter the data to exclude 2 populations, namely BNV and SAI for which environmental data are not available.
+ ```bash
+ #################################################################################
+#                           preparing data for RDA and GEA
+#################################################################################
+
+vcftools --gzvcf ../populations.24_09.missing0.92mac15.indep.clean2.recode.vcf.gz \
+    --remove ../Russia_BNV \
+    --mac 15  \
+    --max-missing 0.95 \
+    --min-meanDP 10 --max-meanDP 120 \
+    --out population_for_GEA \
+    --recode \
+    --recode-INFO-all
+
+input=population_for_GEA.recode.vcf
+strata $input strata.txt
+bgzip $input
+
+input=$input.gz
+
+cut -f 2 strata.txt > ind.tmp; cp ind.tmp new.ind.tmp 
+sed -i '2536,2567s/HOP/HOD/g' new.ind.tmp
+paste ind.tmp new.ind.tmp > new_sample_name.txt 
+
+bcftools reheader --samples new_sample_name.txt -o ${input%.recode.vcf.gz}.renamed.vcf.gz $input 
+
+gunzip ${input%.recode.vcf.gz}.renamed.vcf.gz
+
+INPUT="${input%.recode.vcf.gz}.renamed.vcf"
+
+vcf2geno $INPUT 
+geno2lfmm ${INPUT%.vcf}.geno 
+sed -i 's/9/NA/g' ${INPUT%.vcf}.lfmm
+#save space
+gzip ${INPUT%.vcf}.lfmm
+gzip ${INPUT%.vcf}.geno
+
+
+plink --vcf $INPUT \
+    --allow-extra-chr \
+    --out ${INPUT%.recode.vcf} \
+    --recode
+    --recode
+
+#prepare a cluster file
+rm strata.txt
+strata $INPUT strata.txt
+cut -d "_" -f2 new.ind.tmp > col2
+cut -d "_" -f1 new.ind.tmp > col1
+paste col1 col2 col1 > cluster.dat
+
+#now compute allele frequency for RDA:
+plink --file  ${INPUT%.recode.vcf}  \
+    --allow-extra-chr --freq \
+    --within cluster.dat 
+
+gzip plink.frq.strat
+
+rm *tmp col*
+#now we can run the RDA and LFMM
+
+################################################################################
+#           prepare the data by excluding the Thompson samples                 #
+################################################################################
+#
+
+mkdir no_thompson
+cd no_thompson
+
+awk -F"\t" '$10=="Thompson" {print $0}' ../metadata > thompson
+awk -F"\t" '$10=="Thompson" {print $1}' ../metadata > thompson.pop #to keep only thompson rivers
+
+grep -Ff thompson.pop ../newnames  > individus.thompson #to extract individuals
+
+input=population_for_GEA.renamed.vcf.gz
+output=population_for_GEA.renamed.nothompson
+
+vcftools --gzvcf ../$input \
+    --remove individus.thompson \
+    --mac 15  \
+    --max-missing 0.95 \
+    --min-meanDP 10 --max-meanDP 120 \
+    --out $output \
+    --recode \
+    --recode-INFO-all
+
+
+strata $output.recode.vcf strata.txt
+
+INPUT="${output}.recode.vcf"
+
+vcf2geno $INPUT 
+geno2lfmm ${INPUT%.vcf}.geno 
+sed -i 's/9/NA/g' ${INPUT%.vcf}.lfmm
+#save space
+gzip ${INPUT%.vcf}.lfmm
+gzip ${INPUT%.vcf}.geno
+
+plink --vcf $INPUT \
+    --allow-extra-chr \
+    --out ${INPUT%.recode.vcf} \
+    --recode
+    --recode
+
+#prepare a cluster file
+strata $INPUT strata.txt
+cut -d "_" -f2 new.ind.tmp > col2
+cut -d "_" -f1 new.ind.tmp > col1
+paste col1 col2 col1 > cluster.dat
+
+#now compute allele frequency for RDA:
+plink --file  ${INPUT%.recode.vcf}  \
+    --allow-extra-chr --freq \
+    --within cluster.dat 
+
+gzip plink.frq.strat
+
+rm *tmp col*
+#now we can run the RDA and LFMM
+
+
+```
+ 
+ 
 ## 6. Looking for parallelism
 (To fill)
 ## 7. PBS analyses 
