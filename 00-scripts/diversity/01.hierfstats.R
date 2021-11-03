@@ -1,3 +1,12 @@
+
+#Purpose:script to compute basic genetic diversity statistics
+#date: October 2021
+#author: QR
+
+if("hierfstat" %in% rownames(installed.packages()) == FALSE)
+{install.packages("hierfstat", repos="https://cloud.r-project.org") }
+
+
 library(hierfstat)
 
 #read data

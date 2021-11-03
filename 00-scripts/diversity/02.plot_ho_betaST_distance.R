@@ -1,10 +1,27 @@
 
 
+#purpose: script to plot diversity Bst correlation with distance to the south
+#Date: october 2021
+#Author: QR
+
+if("dplyr" %in% rownames(installed.packages()) == FALSE)
+{install.packages("dplyr", repos="https://cloud.r-project.org") }
+if("magrittr" %in% rownames(installed.packages()) == FALSE)
+{install.packages("magrittr", repos="https://cloud.r-project.org") }
+if("data.table" %in% rownames(installed.packages()) == FALSE)
+{install.packages("data.table", repos="https://cloud.r-project.org") }
+if("ggplot2" %in% rownames(installed.packages()) == FALSE)
+{install.packages("ggplot2", repos="https://cloud.r-project.org") }
+if("cowplot" %in% rownames(installed.packages()) == FALSE)
+{install.packages("cowplot", repos="https://cloud.r-project.org") }
+#or latest: remotes::install_github("wilkelab/cowplot")
+
 library(ggplot2)
 library(dplyr)
 library(magrittr)
 library(data.table)
 library(cowplot)
+
 rm(list=ls())
 
 
@@ -73,12 +90,10 @@ p <- p + theme(legend.position = c(.01, .002),
 
 p
 
-
-pdf(file = "Ho_corrected_distances_with_labels.pdf", 20, 6)
+pdf(file = "Ho_corrected_distances.pdf", 20, 6)
 p
 dev.off()
 
-#p <- p + geom_text(aes(label=POP_ID),hjust=0, vjust=0,size=3)
 pdf(file="Ho_corrected_distance_withlabels.pdf",18,10)
 p + geom_text(aes(label=POP_ID),hjust=0, vjust=0,size=1)
 dev.off()
