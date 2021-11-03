@@ -27,6 +27,14 @@ for filtration:
 
 ANGSD, R & python
 
+#I like to use the following fonction in my .bashrc :
+
+```bash
+function strata () { cat <(grep "CHR" "$1" ) |\
+    cut -f 10- |\                                  
+    perl -pe 's/\t/\n/g' | \
+              sed 's/_/\t/g' | awk '{print $1"\t"$1"_"$2}' > "$2"; }
+```
 
 # Steps :
 
@@ -43,6 +51,7 @@ ANGSD, R & python
 
 ## 2. Filter vcf and perform quality checks
     (to fill)
+
 ## 3. Compute genetic diversity and plot it
 
 first convert vcf into hierfstat and other usefull input 
@@ -77,29 +86,241 @@ cut -d " " -f 3 $snp |perl -pe "s/\n/\t/g" > snp_id.tmp
 paste loc.tmp snp_id.tmp > loc.tmp
 cat loc.tmp hierfstat.data.tmp > hierfstat.data.txt
 rm *tmp
+```
+
+then use R to compute basic statistics (Hs, Ho, Fis, Bst, in hierfstat) 
+
+the scripts:  
 
 ```
-then use R to compute basic statistics (Hs, Ho, Fis, Bst, in hierfstat)
-Rscript ./00-scripts/01.hierfstats.R
+00-scripts/diversity/00.vcf2hierfstats.sh
+00-scripts/diversity/01.hierfstats.R
+```
 
-     
-## 4. Perform PCA and VAE analyses
-     (to fill)
+should procude all the results. 
+
+The second script run on a cluster with >50Gb of RAM  :
+```
+Rscript ./00-scripts/diversity/01.hierfstats.R
+```
+
+Then we will perform plots of the correlation between the distance to the southernmost site and Bst and Hs statistics.  
+
+
+## 4. Perform PCA and VAE analyses  
+
+### 4a. PCA
+
+PCA was performed on individuals using [this script](https://github.com/QuentinRougemont/utility_scripts/blob/master/02.PCA/pca_on_vcf.R) and populations allele frequency using [this script](https://github.com/QuentinRougemont/utility_scripts/blob/master/02.PCA/pca_on_freq.R). 
+I also made an IBS plot using plink with this [simple script](https://github.com/QuentinRougemont/utility_scripts/blob/master/07.random_scripts/plink_cluster_IBS.sh). 
+
+To plot and fit to the Coho salmon data here's a simple modification of the script.
+```R
+
+file="plink.frq.strat.renamed.gz"
+
+#load libs
+libs <- c('dplyr','reshape2','ade4','data.table', 'factoextra', 'magrittr','ggsci')
+invisible(lapply(libs, library, character.only = TRUE))
+
+file <- paste0("zcat ",file) 
+freq <- fread(file)
+freq2 <- dplyr::select(freq,SNP,CLST,MAF) 
+freq3 <- reshape2::dcast(freq2,SNP~CLST)
+freq3 <- freq3[,-1] 
+freq4 <- t(freq3)
+pop <- unique(freq$CLST)   
+pop <- data.frame(pop)
+
+#perform PCA
+pca1 <- dudi.pca(freq4,scale=FALSE,scannf=FALSE)
+
+#load strata
+strata <- read.table("pop_ind_region_latitute_corrected3.txt") 
+strata <- select(strata, V2,V6) %>% 
+    set_colnames(.,c("POP","REGION"))
+strata <- unique(strata)
+strata <- strata[order(strata$POP),]  #reorder because population DRA has been renamed into WAC
+
+#personalizing the colors:
+myColors <- c("blue","orange","red","darkviolet","springgreen4","green")
+names(myColors) <- levels(strata$REGION)
+colScale <- scale_colour_manual(name = "REGION",values = myColors)
+
+#plot with river label:
+p <- fviz_pca_ind(pca1, label="none", pointsize = 0.0) +
+    geom_text(aes(label=strata$POP, 
+        colour=factor(strata$REGION)),
+        size = 2, repel = T )
+p <- p + theme_minimal() + theme(legend.position = "none")  + colScale
+#p <- p + scale_color_igv() + theme_minimal() + theme(legend.position = "none")
+
+pdf(file="pca_on_freq_population.pdf")
+p
+dev.off()
+
+```
+
+
+
+### 4b. Running VAE:
+
+Install vae available (here)[https://github.com/kr-colab/popvae]  
+Due to its stochasticity, you'll obtained slightly different results than I did.
+The analysis is really straighforward and I used default parameters here.
+
+
 ## 5. GEA Analyses:
-  * RDA analyses:
-    * use the Rscript to perform the GEA
-    * Test significance with the following script
-    * Plot de data
-  *  LFMM analyses
-    *  use the following script:
-* To complete
+
+ We first need to filter the data to exclude 2 populations, namely BNV and SAI for which environmental data are not available. 
+
+```bash
+ #################################################################################
+#                           preparing data for RDA and GEA
+#################################################################################
+
+mkdir GEA
+cd GEA
+
+#we create a file containing population SAI and BNV that we want to exclude
+grep "SAI\|BNV" ../strata > SAI_BNV.txt 
+
+vcftools --gzvcf ../populations.24_09.missing0.92mac15.indep.clean2.recode.vcf.gz \
+    --remove SAI_BNV.txt \
+    --mac 15  \
+    --max-missing 0.95 \
+    --min-meanDP 10 --max-meanDP 120 \
+    --out population_for_GEA \
+    --recode \
+    --recode-INFO-all
+
+input=population_for_GEA.recode.vcf
+strata $input strata.txt
+bgzip $input
+
+input=$input.gz
+
+cut -f 2 strata.txt > ind.tmp; cp ind.tmp new.ind.tmp 
+
+#in this file we need to rename the 32 first individuals from HOP into HOD as the "HOP" population contains individual sample from both "HOP" and "HOD"
+sed -i '2536,2567s/HOP/HOD/g' new.ind.tmp
+
+paste ind.tmp new.ind.tmp > new_sample_name.txt 
+
+#then we rename individuals in the vcf 
+bcftools reheader --samples new_sample_name.txt -o ${input%.recode.vcf.gz}.renamed.vcf.gz $input 
+
+gunzip ${input%.recode.vcf.gz}.renamed.vcf.gz
+
+INPUT="${input%.recode.vcf.gz}.renamed.vcf"
+
+#create usefull intput for LFMM:
+vcf2geno $INPUT 
+geno2lfmm ${INPUT%.vcf}.geno 
+sed -i 's/9/NA/g' ${INPUT%.vcf}.lfmm
+
+#save space
+gzip ${INPUT%.vcf}.lfmm
+gzip ${INPUT%.vcf}.geno
+
+
+plink --vcf $INPUT \
+    --allow-extra-chr \
+    --out ${INPUT%.recode.vcf} \
+    --recode
+    --recode
+
+#prepare a cluster file
+rm strata.txt
+strata $INPUT strata.txt
+cut -d "_" -f2 new.ind.tmp > col2
+cut -d "_" -f1 new.ind.tmp > col1
+paste col1 col2 col1 > cluster.dat
+
+#now compute allele frequency for RDA:
+plink --file  ${INPUT%.recode.vcf}  \
+    --allow-extra-chr --freq \
+    --within cluster.dat 
+
+gzip plink.frq.strat
+
+rm *tmp col*
+#now we can run the RDA and LFMM
+
+################################################################################
+#           prepare the data by excluding the Thompson samples                 #
+################################################################################
+#Since the Thompson samples populations are highly divergent they may be driving part of the signal, we will therefore replicate the analyses by removing them from the samples.
+
+mkdir no_thompson
+cd no_thompson
+
+awk -F"\t" '$10=="Thompson" {print $0}' ../metadata > thompson
+awk -F"\t" '$10=="Thompson" {print $1}' ../metadata > thompson.pop #to keep only thompson rivers
+
+grep -Ff thompson.pop ../newnames  > individus.thompson #to extract individuals
+
+input=population_for_GEA.renamed.vcf.gz
+output=population_for_GEA.renamed.nothompson
+
+vcftools --gzvcf ../$input \
+    --remove individus.thompson \
+    --mac 15  \
+    --max-missing 0.95 \
+    --min-meanDP 10 --max-meanDP 120 \
+    --out $output \
+    --recode \
+    --recode-INFO-all
+
+
+strata $output.recode.vcf strata.txt
+
+INPUT="${output}.recode.vcf"
+
+vcf2geno $INPUT 
+geno2lfmm ${INPUT%.vcf}.geno 
+sed -i 's/9/NA/g' ${INPUT%.vcf}.lfmm
+#save space
+gzip ${INPUT%.vcf}.lfmm
+gzip ${INPUT%.vcf}.geno
+
+plink --vcf $INPUT \
+    --allow-extra-chr \
+    --out ${INPUT%.recode.vcf} \
+    --recode
+    --recode
+
+#prepare a cluster file
+strata $INPUT strata.txt
+cut -f1 strata.txt > col1
+cut -d "_" -f2 strata.txt > col2
+paste col1 col2 col1 > cluster.dat
+
+#now compute allele frequency for RDA:
+plink --file  ${INPUT%.recode.vcf}  \
+    --allow-extra-chr --freq \
+    --within cluster.dat 
+
+gzip plink.frq.strat
+
+rm *tmp col*
+#now we can run the RDA and LFMM
+
+
+```
+ 
+ 
 ## 6. Looking for parallelism
 (To fill)
+
+
 ## 7. PBS analyses 
 (To fill)
 
+
 ## 8. Association between recombination and outliers
 (To fill)
+
 
 ## 9. looking for candidate
   * No GO enrichment instead I only use SNPeff and look for meaningfull outliers.
