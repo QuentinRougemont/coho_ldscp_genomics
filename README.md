@@ -161,6 +161,8 @@ dev.off()
 
 ```
 
+you should obtained an image as follows 
+![example_graph](https://github.com/QuentinRougemont/coho_ldscp_genomics/blob/main/pictures/pca_on_freq_population.git.png)  
 
 
 ### 4b. Running VAE:

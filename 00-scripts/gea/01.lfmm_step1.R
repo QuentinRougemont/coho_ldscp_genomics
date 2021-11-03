@@ -98,9 +98,7 @@ plot(pc$sdev[1:100]^2, xlab = 'PC', ylab = "Variance explained")
 dev.off()
 
 #run lfmm
-#for (K in c(20, 15, 16, 18, 40, 60, 100, 200)){
-#for (K in c(6, 8, 10, 20, 12, 14, 15, 16, 18, 40, 60, 100, 200)){
-for (K in c(5, 20, 10, 14, 6, 8, 12, 15, 30, 40,50, 60, 100, 200)){
+for (K in c(5, 6, 12, 20, 40, 60, 100, 200)){
 mod.lfmm <- lfmm_ridge(Y = Y,
                         X = X,
                         K = K) #we could increase to 10 groups at most
