@@ -100,19 +100,22 @@ the scripts:
 should procude all the results. 
 
 The second script run on a cluster with >50Gb of RAM  :
-```
+```R
 Rscript ./00-scripts/diversity/01.hierfstats.R
 ```
 
 Then we will perform plots of the correlation between the distance to the southernmost site and Bst and Hs statistics. 
 
-### Plotting diversity 
+### Plotting diversity  
+
+ 
 Run:
 ```R
 Rscript ./00-scripts/diversity/02.plot_ho_betaST_distance.R
 ```
 
-on the command line or alternatively in Rstudio, this will test for correlation among diversity and distance and produce the following graph:
+on the command line or alternatively in Rstudio,  
+this will test for correlation among diversity and distance and produce the following graph:
 ![example_graph](https://github.com/QuentinRougemont/coho_ldscp_genomics/blob/main/pictures/figureS07.git.png) 
 
 
@@ -161,9 +164,11 @@ colScale <- scale_colour_manual(name = "REGION",values = myColors)
 p <- fviz_pca_ind(pca1, label="none", pointsize = 0.0) +
     geom_text(aes(label=strata$POP, 
         colour=factor(strata$REGION)),
-        size = 2, repel = T )
-p <- p + theme_minimal() + theme(legend.position = "none")  + colScale
-#p <- p + scale_color_igv() + theme_minimal() + theme(legend.position = "none")
+        size = 2 )
+p <- p +theme(legend.text = element_text(size = 10, face = "bold")) +
+        theme(legend.justification=c(1,0), legend.position=c(1,0)) +
+        colScale
+
 
 pdf(file="pca_on_freq_population.pdf")
 p
