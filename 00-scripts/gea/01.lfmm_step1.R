@@ -40,12 +40,12 @@ loci <- read.table(snp) %>%
     #set_colnames(.,c("CHR","POS","SNP")) 
 
 ##################  DOWNLOAD ENV DATA ########################  
-metadata <- read.table("metadata", h = T, sep = "\t")
-metadata<- metadata %>%filter(POP !="SAI" & POP !="BNV")
+metadata <- read.table("01-info/metadata", h = T, sep = "\t")
+metadata <- metadata %>% filter(POP !="SAI" & POP !="BNV")
 
-geol <- read.table("geology", T)
+geol <- read.table("02-data/env/geology", T)
 #remove BNV and SAI:
-geol <- geol %>%filter(POP !="SAI" & POP !="BNV")
+geol <- geol %>% filter(POP !="SAI" & POP !="BNV")
 #remove BNV and SAI:
 
 #replace altitude of zero by 1
@@ -58,8 +58,8 @@ metadata$normalized_distance =  metadata$elevation * metadata$dist_max_km
 metadata$normalized_distance <- range01(metadata$normalized_distance)
 
 ####### READ PCA axis #################################################
-temp <- read.table("temperature_coordinates_pca.txt", T)
-prec <- read.table("precipitation_coordinates_pca.txt", T)
+temp <- read.table("02-data/env/temperature_coordinates_pca.txt", T)
+prec <- read.table("02-data/env/precipitation_coordinates_pca.txt", T)
 
 #merge all environmental variable:
 env1 <- dplyr::select(metadata, POP, Latitude, normalized_distance)
@@ -68,7 +68,7 @@ env1 <- merge(env1, prec)
 env1 <- merge(env1, geol)
 
 #set them to an individual level now:
-ind <- read.table("strata.txt") %>% set_colnames(., c("POP","IND"))
+ind <- read.table("01-info/strata.txt") %>% set_colnames(., c("POP","IND"))
 
 #ici il faut réordooner env1 pour qu'il matche l'ordre des ind?
 
@@ -129,63 +129,62 @@ mod.lfmm <- lfmm_ridge(Y = Y,
     colnames(pvadj) <- colnames(pvalues)
     padj_loc <- cbind(loci[,c(1:3)],pvadj)                              
 
-
     #€xport value
     write.table(pval_loc,
-    paste("pvalues_lfkmm_K",K,"txt",sep="."),
-    sep="\t",quote=F,row.names=F)
+    paste("pvalues_lfkmm_K",K,"txt", sep = "."),
+    sep = "\t", quote = F, row.names = F)
     
     #corrected value
     write.table(padj_loc,
-    paste("adjust_pvaluesBH_lfkmm_K",K,"txt",sep="."),
-    sep="\t",quote=F,row.names=F)
+    paste("adjust_pvaluesBH_lfkmm_K",K,"txt", sep = "."),
+    sep = "\t", quote = F, row.names = F)
 
     #Extract significiant variable using a stringeant p-value cutoff!
     geology <- filter(padj_loc, geology < 0.05) %>% select(V1,V2,V3,geology) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Temp1 <- filter(padj_loc,Temp1<0.05) %>% select(V1,V2,V3,Temp1) %>% 
+    Temp1 <- filter(padj_loc,Temp1 < 0.05) %>% select(V1,V2,V3,Temp1) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH")) 
-    Temp2 <- filter(padj_loc,Temp2<0.05) %>% select(V1,V2,V3,Temp2) %>% 
+    Temp2 <- filter(padj_loc,Temp2 < 0.05) %>% select(V1,V2,V3,Temp2) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Temp3 <- filter(padj_loc,Temp3<0.05) %>% select(V1,V2,V3,Temp3) %>% 
+    Temp3 <- filter(padj_loc,Temp3 < 0.05) %>% select(V1,V2,V3,Temp3) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Temp4 <- filter(padj_loc,Temp3<0.05) %>% select(V1,V2,V3,Temp4) %>% 
+    Temp4 <- filter(padj_loc,Temp4 < 0.05) %>% select(V1,V2,V3,Temp4) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Prec1 <- filter(padj_loc,Prec1<0.05) %>% select(V1,V2,V3,Prec1) %>% 
+    Prec1 <- filter(padj_loc,Prec1 < 0.05) %>% select(V1,V2,V3,Prec1) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Prec2 <- filter(padj_loc,Prec2<0.05) %>% select(V1,V2,V3,Prec2) %>% 
+    Prec2 <- filter(padj_loc,Prec2 < 0.05) %>% select(V1,V2,V3,Prec2) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Prec3 <- filter(padj_loc,Prec3<0.05) %>% select(V1,V2,V3,Prec3) %>% 
+    Prec3 <- filter(padj_loc,Prec3 < 0.05) %>% select(V1,V2,V3,Prec3) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Latitude <- filter(padj_loc,Latitude<0.05) %>% select(V1,V2,V3,Latitude) %>% 
+    Latitude <- filter(padj_loc,Latitude < 0.05) %>% select(V1,V2,V3,Latitude) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Dist <- filter(padj_loc,normalized_distance<0.05) %>% 
+    Dist <- filter(padj_loc,normalized_distance < 0.05) %>% 
         select(V1,V2,V3,normalized_distance) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH")) 
     
-    geology$var="geology"
-    Temp1$var="Temp1"
-    Temp2$var="Temp2"
-    Temp3$var="Temp3"
-    Temp4$var="Temp4"
-    Prec1$var="Prec1"
-    Prec2$var="Prec2"
-    Prec3$var="Prec3"
-    Latitude$var="Latitude"
-    Dist$var="Dist"
+    geology$var = "geology"
+    Temp1$var = "Temp1"
+    Temp2$var = "Temp2"
+    Temp3$var = "Temp3"
+    Temp4$var = "Temp4"
+    Prec1$var = "Prec1"
+    Prec2$var = "Prec2"
+    Prec3$var = "Prec3"
+    Latitude$var = "Latitude"
+    Dist$var = "Dist"
     
     all <- rbind(geology, Temp1, Temp2, Temp3, Temp4,
         Prec1, Prec2, Prec3, Dist)
     
     #remove variable that covary with latitude:
-    all_corrected <-anti_join(all, Latitude, c("SNP"="SNP"))   
+    all_corrected <- anti_join(all, Latitude, c("SNP" = "SNP"))   
     
     write.table(all_corrected,
     paste0("significant_outlier_control_forLatitudeK", K, ".txt"),
-    quote=F,row.names=F,sep="\t")
+    quote = F, row.names = F, sep = "\t")
 
     write.table(all,
         paste0("significant_outlierK",K,".txt")
-        ,quote=F,row.names=F,sep="\t")
+        ,quote = F,row.names = F, sep = "\t")
 
 }
