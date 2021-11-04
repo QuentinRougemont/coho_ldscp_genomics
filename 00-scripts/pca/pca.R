@@ -40,7 +40,11 @@ p <- fviz_pca_ind(pca1, label="none", pointsize = 0.0) +
 #p <- p + scale_color_igv() + theme_minimal() + theme(legend.position = "none")
 p <- p +theme(legend.text = element_text(size = 10, face = "bold")) +
     theme(legend.justification=c(1,0), legend.position=c(1,0)) + 
-    colScale
+    colScale + 
+    ggtitle("PCA on allele frequencies") + 
+     theme(plot.title = element_text(lineheight=.8, face="bold" , hjust = 0.5))
+
+    
 pdf(file="pca_on_freq_population.pdf")
 p
 dev.off()

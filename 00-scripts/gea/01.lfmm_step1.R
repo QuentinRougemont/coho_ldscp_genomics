@@ -6,25 +6,19 @@ if("dplyr" %in% rownames(installed.packages()) == FALSE)
 {install.packages("dplyr", repos="https://cloud.r-project.org") }
 if("magrittr" %in% rownames(installed.packages()) == FALSE)
 {install.packages("magrittr", repos="https://cloud.r-project.org") }
-if("ade4" %in% rownames(installed.packages()) == FALSE)
-{install.packages("ade4", repos="https://cloud.r-project.org") }
 if("reshape" %in% rownames(installed.packages()) == FALSE)
 {install.packages("reshape", repos="https://cloud.r-project.org") }
-if("factoextra" %in% rownames(installed.packages()) == FALSE)
-{install.packages("factoextra", repos="https://cloud.r-project.org") }
-if("vegan" %in% rownames(installed.packages()) == FALSE)
-{install.packages("vegan", repos="https://cloud.r-project.org") }
 if("data.table" %in% rownames(installed.packages()) == FALSE)
 {install.packages("data.table", repos="https://cloud.r-project.org") }
 ##for LFMM1:
 if("lfmm" %in% rownames(installed.packages()) == FALSE)
-{install.packages("data.table", repos="https://cloud.r-project.org") }
+{install.packages("lfmm", repos="https://cloud.r-project.org") }
 ##for LFMM2:
 if("LEA" %in% rownames(installed.packages()) == FALSE)
 {BiocManager::install("LEA") }
 
 ## load libs
-libs <- c('dplyr','reshape2','ade4','data.table', 'magrittr', 'factoextra','vegan', 'lfmm')
+libs <- c('dplyr','reshape2','data.table', 'magrittr',  'lfmm')
 invisible(lapply(libs, library, character.only = TRUE))
 
 ## read lfmm file:
