@@ -104,7 +104,17 @@ The second script run on a cluster with >50Gb of RAM  :
 Rscript ./00-scripts/diversity/01.hierfstats.R
 ```
 
-Then we will perform plots of the correlation between the distance to the southernmost site and Bst and Hs statistics.  
+Then we will perform plots of the correlation between the distance to the southernmost site and Bst and Hs statistics. 
+
+### Plotting diversity 
+Run:
+```R
+Rscript ./00-scripts/diversity/02.plot_ho_betaST_distance.R
+```
+
+on the command line or alternatively in Rstudio, this will test for correlation among diversity and distance and produce the following graph:
+![example_graph](https://github.com/QuentinRougemont/coho_ldscp_genomics/blob/main/pictures/figureS07.git.png) 
+
 
 
 ## 4. Perform PCA and VAE analyses  
