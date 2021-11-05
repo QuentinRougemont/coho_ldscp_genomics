@@ -50,7 +50,37 @@ function strata () { cat <(grep "CHR" "$1" ) |\
   * Use ANSGD to produce likelihood file (used to compute Fst and PBS latter)
 
 ## 2. Filter vcf and perform quality checks
+
+To reproduce the filtering you can access the raw vcf from dryad
+
+### 2.1. Filtering vcf
     (to fill)
+
+
+### 2.2. Quality check
+
+	* compute depth of sequencing, missing rate, genotyping rate  
+
+    (to fill)
+
+	* verifiy the absence of a pattern in missing data
+
+working on the same cleaned file (populations.mac1miss0.95.renamed.vcf)   
+
+```bash
+plink --file populations.mac1miss0.95.renamed.vcf \
+    --allow-extra-chr \
+    --mds-plot 4  --cluster missing  \
+    --out ibm_mds_to_plot
+```
+
+then plot it using:  
+```R
+Rscript ./00-scripts/quality_check/plot_mds.R
+```
+
+we see an absence that missing data are low and that these missing data do not show a particular pattern of structure.  
+
 
 ## 3. Compute genetic diversity and plot it
 
@@ -198,6 +228,122 @@ The analysis is really straighforward and I used default parameters here.
 
 ## 5. GEA Analyses:
 
+
+## 5.1. Extract environmental data  
+
+The environmental data are located in the ```01-info``` folder with two text file:
+* metadata 
+* bioclimatic_var
+
+Data included the following:
+* Distance to the spawning site (km) 
+* Elevation (m) 
+* Watershed areas 
+* Climate data (precipitation and temperature from WorldClim) 
+* Geological data (extracted from the USGS database)  (included in ```02-data/env/geology```
+
+Climate data include the mean, min, max range, sdt of 19 variables associated to precipitation and temperature.
+These are obviously redundant and we summarized them and decorelate the variable using a PCA. 
+
+The following simple code available at ```00-scripts/gea/00.pca_of_env.R```  
+
+```R
+## load libs
+libs <- c('dplyr','ade4','factoextra','vegan','cowplot')
+invisible(lapply(libs, library, character.only = TRUE))
+
+###### DOWNLOAD ENV DATA
+metadata <- read.table("01-info/metadata", h = T, sep = "\t")
+
+bioclim <- read.table("01-info/bioclimatic_var", h = T, sep = "\t" )
+#remove BNV and SAI:
+bioclim <- bioclim %>%filter(POP !="SAI" & POP !="BNV")
+
+####### PERFORM PCA ON ENVT VAR #################################################
+#will do a PCA on the dataaset that contains only climatic variables:
+#separate temperature and precipitation and keep only significant axis or only first axis
+X.temp <- dudi.pca(df = bioclim[, 2:56], center = T, scale = T, scannf = FALSE) #nf = 3)
+X.prec  <- dudi.pca(df = bioclim[, 57:96], center = T, scale = T, scannf = FALSE) # nf = 3)
+
+## singificance of axis
+eig.val <- get_eigenvalue(X.temp) #first we get the eigen value in an easy form
+eig.val$eig <- eig.val$variance.percent/100 #percent
+expected <- bstick(length(eig.val$eig) )
+signif <- eig.val$eig > expected #get signifcicant axis #3axes sont signif
+signif
+#4 axis are significant
+
+eig.val.p <- get_eigenvalue(X.prec) #first we get the eigen value in an easy form
+eig.val.p$eig <- eig.val.p$variance.percent/100 #percent
+expected <- bstick(length(eig.val.p$eig) )
+signif.p <- eig.val.p$eig > expected #get signifcicant axis #3axes sont signif
+signif.p
+#3 axis are signficant
+
+#visualisation of individuals cos^2:
+X.temp <- dudi.pca(df = bioclim[, 2:53], center = T, scale = T, scannf = FALSE, nf = 4)
+X.prec  <- dudi.pca(df = bioclim[, 54:95], center = T, scale = T, scannf = FALSE,  nf = 3)
+
+fviz_pca_ind(X.prec, col.ind="cos2", geom = "point") +
+    scale_color_gradient2(low="white", mid="blue",
+    high="red", midpoint=0.6)+ theme_minimal()
+
+p12 <- fviz_pca_var(X.prec, col.var="steelblue")+
+    theme_minimal()  +  ggtitle("Precipitation PC axis 12\nvariables") + 
+     theme(plot.title = element_text(lineheight=.8, face="bold", hjust = 0.5))
+
+p23 <- fviz_pca_var(X.prec, axes = c(2,3) , col.var="steelblue")+
+    theme_minimal() +  ggtitle("Precipitation PC axis 23\nvariables") + 
+     theme(plot.title = element_text(lineheight=.8, face="bold", hjust = 0.5))
+
+t12 <- fviz_pca_var(X.temp, col.var="steelblue")+
+    theme_minimal() +  ggtitle("Temperature PC axis 12\nvariables") + 
+     theme(plot.title = element_text(lineheight=.8, face="bold" , hjust = 0.5))
+
+t34 <- fviz_pca_var(X.temp, axes = c(3,4) , col.var="steelblue")+
+    theme_minimal() +  ggtitle("Temperature PC axis 34\nvariables") + 
+     theme(plot.title = element_text(lineheight=.8, face="bold" , hjust = 0.5))
+
+
+t_eig  <- fviz_eig(X.temp, addlabels = TRUE, ylim = c(0, 50)) + 
+    ggtitle("Temperature eigenvalues") + 
+     theme(plot.title = element_text(lineheight=.8, face="bold" , hjust = 0.5))
+
+
+p_eig  <- fviz_eig(X.prec, addlabels = TRUE, ylim = c(0, 50)) + 
+    ggtitle("Precipitation eigenvalues") + 
+     theme(plot.title = element_text(lineheight=.8, face="bold" , hjust = 0.5))
+
+pdf(file = "temperature_and_precipiration.pca.pdf", 18,12)
+plot_grid(t12, t34, t_eig, p12, p23,p_eig, 
+    labels = "auto", ncol = 3)
+dev.off()
+
+#We will keep all three axis (significant, but could also work on the first only:
+prec.ind <- get_pca_ind(X.prec)
+temp.ind <- get_pca_ind(X.temp)
+colnames(temp.ind$coord) <- c("Temp1","Temp2","Temp3","Temp4")
+colnames(prec.ind$coord) <- c("Prec1","Prec2","Prec3")
+
+prec = cbind(bioclim$POP, prec.ind$coord)
+temp = cbind(bioclim$POP, temp.ind$coord)
+
+write.table(temp, "02.data/env/temperature_coordinates_pca.txt" , quote = F, row.names = F )
+write.table(prec, "02.data/env/precipitation_coordinates_pca.txt" , quote = F, row.names = F )
+
+```
+
+this will create the two input-files   
+* temperature_coordinates_pca.txt  
+* precipitation_coordinates_pca.txt  
+
+ located in 02.data/env/ 
+
+This will be used in the GEA  
+
+
+## 5.2. Prepare genomics data  
+
  We first need to filter the data to exclude 2 populations, namely BNV and SAI for which environmental data are not available. 
 
 ```bash
@@ -273,10 +419,11 @@ gzip plink.frq.strat
 rm *tmp col*
 #now we can run the RDA and LFMM
 
+
 ################################################################################
 #           prepare the data by excluding the Thompson samples                 #
 ################################################################################
-#Since the Thompson samples populations are highly divergent they may be driving part of the signal, we will therefore replicate the analyses by removing them from the samples.
+# Since the Thompson samples populations are highly divergent they may be driving part of the signal, we will therefore replicate the analyses by removing them from the samples.
 
 mkdir no_thompson
 cd no_thompson
@@ -306,7 +453,9 @@ INPUT="${output}.recode.vcf"
 vcf2geno $INPUT 
 geno2lfmm ${INPUT%.vcf}.geno 
 sed -i 's/9/NA/g' ${INPUT%.vcf}.lfmm
-#save space
+
+# save space
+
 gzip ${INPUT%.vcf}.lfmm
 gzip ${INPUT%.vcf}.geno
 
@@ -316,25 +465,77 @@ plink --vcf $INPUT \
     --recode
     --recode
 
-#prepare a cluster file
+# prepare a cluster file
+
 strata $INPUT strata.txt
 cut -f1 strata.txt > col1
-cut -d "_" -f2 strata.txt > col2
+cut -d "\_" -f2 strata.txt > col2
 paste col1 col2 col1 > cluster.dat
 
-#now compute allele frequency for RDA:
-plink --file  ${INPUT%.recode.vcf}  \
+# now compute allele frequency for RDA
+
+plink --file  ${INPUT%.recode.vcf} \
     --allow-extra-chr --freq \
     --within cluster.dat 
 
 gzip plink.frq.strat
 
-rm *tmp col*
+rm \*tmp col\* 
 #now we can run the RDA and LFMM
 
 
 ```
+
+## 5.3. Running the GEAs
+
+
+## 5.3.1 LFMM
+
+LFMM will use a mixed model analyses to identify outliers
+
+simply use the script in 
+
+```R
+./00-scripts/gea/01.lfmm_step1.R 
+```
+
+this will run rather rapidly with approximately 20-30Gb of RAM  
+
+
+## 5.3.2. RDA  
+
+* Significance testing 
+
+First we need to test the significance of environmental data and of the RDA axes.
+This is done through an ANOVA like permutation test of the RDA using the ```anova.cca``` function in R 
+The ```ordiR2step``` function also allows to test the best model and choose significant variable of the RDA through a set of permutation test.
  
+Run the script : 
+```R
+./00-scripts/gea/02.RDA_significance_testing.R
+```
+
+it takes a few hours on a cluster
+
+* identify outliers:
+
+run the script : 
+
+```R
+Rscript 00-scripts/gea/03.RDA_identify_outliers.R
+```
+
+this will write the number of outlier in a file
+
+
+## 5.3.3. Create a RDA Figure and LFMM plot:
+
+To reproduce the Figure 3 simply run:
+
+```R
+Rscript 00-scripts/gea/Figure3.R
+``` 
+
  
 ## 6. Looking for parallelism
 (To fill)
