@@ -54,18 +54,25 @@ function strata () { cat <(grep "CHR" "$1" ) |\
 To reproduce the filtering you can access the raw vcf from dryad
 
 ### 2.1. Filtering vcf
+
+
     (to fill)
 
 
 ### 2.2. Quality check
 
+working on the same cleaned file (populations.mac1miss0.95.renamed.vcf)   
+
+
 	* compute depth of sequencing, missing rate, genotyping rate  
 
-    (to fill)
+    use:
+		* vcftools site-mean-depth 
+		* vcftools missing-indv  
+
 
 	* verifiy the absence of a pattern in missing data
 
-working on the same cleaned file (populations.mac1miss0.95.renamed.vcf)   
 
 ```bash
 plink --file populations.mac1miss0.95.renamed.vcf \
@@ -502,9 +509,12 @@ simply use the script in
 this will run rather rapidly with approximately 20-30Gb of RAM  
 
 
+
 ## 5.3.2. RDA  
 
-* Significance testing 
+Next we run the RDA in 2 steps
+
+* 1. Significance testing 
 
 First we need to test the significance of environmental data and of the RDA axes.
 This is done through an ANOVA like permutation test of the RDA using the ```anova.cca``` function in R 
@@ -517,7 +527,7 @@ Run the script :
 
 it takes a few hours on a cluster
 
-* identify outliers:
+* 2. identify outliers:
 
 run the script : 
 
@@ -535,6 +545,8 @@ To reproduce the Figure 3 simply run:
 ```R
 Rscript 00-scripts/gea/Figure3.R
 ``` 
+
+This should automatically produce the Figure3 from our manuscrit
 
  
 ## 6. Looking for parallelism
