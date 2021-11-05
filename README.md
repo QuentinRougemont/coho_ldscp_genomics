@@ -71,7 +71,7 @@ working on the same cleaned file (populations.mac1miss0.95.renamed.vcf)
 		* vcftools missing-indv  
 
 
-	* verifiy the absence of a pattern in missing data
+	* verifiy the absence of a pattern in missing data :
 
 
 ```bash
@@ -85,6 +85,10 @@ then plot it using:
 ```R
 Rscript ./00-scripts/quality_check/plot_mds.R
 ```
+
+we obtained the following plot:
+![example_graph](https://github.com/QuentinRougemont/coho_ldscp_genomics/blob/main/pictures/ibm_mds_point.git.png) 
+
 
 we see an absence that missing data are low and that these missing data do not show a particular pattern of structure.  
 
@@ -122,7 +126,8 @@ echo "loc" > loc.tmp
 cut -d " " -f 3 $snp |perl -pe "s/\n/\t/g" > snp_id.tmp
 paste loc.tmp snp_id.tmp > loc.tmp
 cat loc.tmp hierfstat.data.tmp > hierfstat.data.txt
-rm *tmp
+rm \*tmp
+
 ```
 
 then use R to compute basic statistics (Hs, Ho, Fis, Bst, in hierfstat) 
@@ -224,6 +229,26 @@ dev.off()
 
 you should obtained an image as follows 
 ![example_graph](https://github.com/QuentinRougemont/coho_ldscp_genomics/blob/main/pictures/pca_on_freq_population.git.png)  
+
+
+
+in addition it is possible to test for population structure using a PCA at the individual level or an IBS plot using a similar command to the one use for IBM:
+
+
+```bash
+plink --file  populations.mac1miss0.95.renamed.vcf \
+    --allow-extra-chr \
+    --mds-plot 4  --cluster\
+    --out mds_to_plot
+```
+
+then you'll obtain the following graph:
+![example_graph](https://github.com/QuentinRougemont/coho_ldscp_genomics/blob/main/pictures/mds_point.git.png) 
+
+
+This higlights particularly well the continuity of our data, where the axis of a PCA are highly correlated with latitude and longitude.  
+Interestingly, we see that the Russian samples falls within Alaska and is not much divergent.  
+
 
 
 ### 4b. Running VAE:
