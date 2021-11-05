@@ -51,9 +51,9 @@ function strata () { cat <(grep "CHR" "$1" ) |\
 
 ## 2. Filter vcf and perform quality checks
 
-To reproduce the filtering you can access the raw vcf from dryad
+To reproduce the filtering you can access the raw vcf from dryad  
 
-### 2.1. Filtering vcf
+### 2.1 Filtering vcf
 
 
     (to fill)
@@ -240,6 +240,12 @@ plink --file  populations.mac1miss0.95.renamed.vcf \
     --allow-extra-chr \
     --mds-plot 4  --cluster\
     --out mds_to_plot
+```
+
+Run this very simple script (similar to the one used for IBM):
+
+```R
+Rscript 00-scripts/pca_ibs/plot_mds.R
 ```
 
 then you'll obtain the following graph:
@@ -597,7 +603,8 @@ this will run rather rapidly with approximately 20-30Gb of RAM
 
 
 
-## 5.3.2. RDA  
+## 5.3.2 RDA  
+
 
 Next we run the RDA in 2 steps
 
@@ -641,6 +648,11 @@ This should automatically produce the Figure3 from our manuscrit
 
 
 ## 7. PBS analyses 
+
+* ANGSD analyses:
+(To fill)
+
+* Produce graph
 (To fill)
 
 
