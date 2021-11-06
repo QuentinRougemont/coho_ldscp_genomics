@@ -261,7 +261,27 @@ Interestingly, we see that the Russian samples falls within Alaska and is not mu
 
 Install vae available (here)[https://github.com/kr-colab/popvae]  
 Due to its stochasticity, you'll obtained slightly different results than I did.
-The analysis is really straighforward and I used default parameters here.
+
+```bash
+
+#install VAE and activate
+#install tensorflow as well!
+
+#create a working directory:
+mkdir VAE
+cd VAE
+#copy the vcf 
+ln -s ../02-data/populations.mac1miss0.95.renamed.vcf.gz .
+#create folder to store the results
+
+mkdir results
+#run popvae with default parameters
+popvae.py --infile populations.mac1miss0.95.renamed.vcf.gz --out results/coho --seed 12345
+
+
+```
+
+Then plot the results in R 
 
 
 ## 5. GEA Analyses:
