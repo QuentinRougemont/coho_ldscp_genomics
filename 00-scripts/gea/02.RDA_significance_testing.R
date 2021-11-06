@@ -15,9 +15,11 @@ if("vegan" %in% rownames(installed.packages()) == FALSE)
 {install.packages("vegan", repos="https://cloud.r-project.org") }
 if("data.table" %in% rownames(installed.packages()) == FALSE)
 {install.packages("data.table", repos="https://cloud.r-project.org") }
+if("corrplot" %in% rownames(installed.packages()) == FALSE)
+{install.packages("corrplot", repos="https://cloud.r-project.org") }
 
 ## load libs
-libs <- c('dplyr','reshape2','data.table', 'magrittr','vegan')
+libs <- c('dplyr','reshape2','data.table', 'magrittr','vegan','corrplot')
 invisible(lapply(libs, library, character.only = TRUE))
 
 ################## DOWNLOAD SNP frequency data      ############################
