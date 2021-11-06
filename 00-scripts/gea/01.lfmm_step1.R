@@ -134,25 +134,25 @@ mod.lfmm <- lfmm_ridge(Y = Y,
     sep = "\t", quote = F, row.names = F)
 
     #Extract significiant variable using a stringeant p-value cutoff!
-    geology <- filter(padj_loc, geology < 0.05) %>% select(V1,V2,V3,geology) %>% 
+    geology <- filter(padj_loc, geology <= 0.02) %>% select(V1,V2,V3,geology) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Temp1 <- filter(padj_loc,Temp1 < 0.05) %>% select(V1,V2,V3,Temp1) %>% 
+    Temp1 <- filter(padj_loc,Temp1 <= 0.02) %>% select(V1,V2,V3,Temp1) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH")) 
-    Temp2 <- filter(padj_loc,Temp2 < 0.05) %>% select(V1,V2,V3,Temp2) %>% 
+    Temp2 <- filter(padj_loc,Temp2 <= 0.02) %>% select(V1,V2,V3,Temp2) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Temp3 <- filter(padj_loc,Temp3 < 0.05) %>% select(V1,V2,V3,Temp3) %>% 
+    Temp3 <- filter(padj_loc,Temp3 <= 0.02) %>% select(V1,V2,V3,Temp3) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Temp4 <- filter(padj_loc,Temp4 < 0.05) %>% select(V1,V2,V3,Temp4) %>% 
+    Temp4 <- filter(padj_loc,Temp4 <= 0.02) %>% select(V1,V2,V3,Temp4) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Prec1 <- filter(padj_loc,Prec1 < 0.05) %>% select(V1,V2,V3,Prec1) %>% 
+    Prec1 <- filter(padj_loc,Prec1 <= 0.02) %>% select(V1,V2,V3,Prec1) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Prec2 <- filter(padj_loc,Prec2 < 0.05) %>% select(V1,V2,V3,Prec2) %>% 
+    Prec2 <- filter(padj_loc,Prec2 <= 0.02) %>% select(V1,V2,V3,Prec2) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Prec3 <- filter(padj_loc,Prec3 < 0.05) %>% select(V1,V2,V3,Prec3) %>% 
+    Prec3 <- filter(padj_loc,Prec3 <= 0.02) %>% select(V1,V2,V3,Prec3) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Latitude <- filter(padj_loc,Latitude < 0.05) %>% select(V1,V2,V3,Latitude) %>% 
+    Latitude <- filter(padj_loc,Latitude <= 0.02) %>% select(V1,V2,V3,Latitude) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Dist <- filter(padj_loc,normalized_distance < 0.05) %>% 
+    Dist <- filter(padj_loc,normalized_distance <= 0.02) %>% 
         select(V1,V2,V3,normalized_distance) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH")) 
     
