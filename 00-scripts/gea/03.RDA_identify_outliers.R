@@ -58,14 +58,14 @@ env1 <- merge(env1, temp)
 env1 <- merge(env1, prec)
 env1 <- merge(env1, geol)
 
-#remplacer avec sed directement dans metadata, geology et bioclim
+#order pop #not usefull
 env1 <- env1[order(env1$POP),]
 
-#ensuire that environmental variable will match the genotype data order:
+#ensure that environmental variable will match the genotype data order provided in the freq4.
 colnames(pop) <- "POP"
 env1 <- left_join(pop, env1) 
 
-#choose the variable we want to work with:
+#choose the variables we want to work with:
 env <- select(env1, -POP, -Region)
 
 #rename for readiblity of the plot:
@@ -73,7 +73,6 @@ colnames(env) <- c("Latitude","normalized_distance",
     "TemperaturePC1", "TemperaturePC2", "TemperaturePC3", "TemperaturePC4",
     "PrecipitationPC1", "PrecipitationPC2", "PrecipitationPC3", 
     "geology")
-
 
 ####################### Now perform the RDA ####################################
 rda1 <- rda(freq4 ~ geology +
@@ -131,6 +130,7 @@ tmp <- length(get(tot[i]))
 }
 ncand <- sum(total[,1])
 
+#part of code to improve
 cand1 <- cbind.data.frame(rep(1, times = length(cand1)), names(cand1), unname(cand1))
 cand2 <- cbind.data.frame(rep(2, times = length(cand2)), names(cand2), unname(cand2))
 cand3 <- cbind.data.frame(rep(3, times = length(cand3)), names(cand3), unname(cand3))
@@ -175,13 +175,13 @@ for (i in 1:length(cand$snp)) {
 
 colnames(cand)[col+1] <- "predictor"
 colnames(cand)[col+2] <- "correlation"
-table(cand$predictor)
+table(cand$predictor) #to check the distribution of outliers by variable
 
 write.table(cand,
     paste("candidate_outliers_with_var",thresh,".txt",sep=""),
     quote=F, row.names=F, col.names=T)
 
-
+# read the CHR, POS and merge to get the chromosome and Position of the outlier SNsP
 snp <- "population_for_GEA.renamed.vcfsnp"
 snp <- read.table(snp) %>% 
     select(V1, V2, V3) %>% 
