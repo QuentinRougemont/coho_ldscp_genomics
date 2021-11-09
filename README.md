@@ -496,6 +496,7 @@ cut -f 2 strata.txt > ind.tmp; cp ind.tmp new.ind.tmp
 
 #in this file we need to rename the 32 first individuals from HOP into HOD as the "HOP" population contains individual sample from both "HOP" and "HOD"
 sed -i '2536,2567s/HOP/HOD/g' new.ind.tmp
+sed -i 's/DRA/WAC/g' new.ind.tmp 
 
 paste ind.tmp new.ind.tmp > new_sample_name.txt 
 
