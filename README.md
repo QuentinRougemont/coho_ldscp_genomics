@@ -261,6 +261,11 @@ Interestingly, we see that the Russian samples falls within Alaska and is not mu
 
 Install vae available (here)[https://github.com/kr-colab/popvae]  
 Due to its stochasticity, you'll obtained slightly different results than I did.
+For instance depanding on the parameters used, you may obtained a distinction of nearly all river in separate cluster (Figure 2 of our paper)
+In other case, you'll obtained a continuous distribution of the genotype entierely correlated with latitude. 
+These two results reflect the existence of fine scale structure (recent postglacial homing) and of strong IBD following the postglacial expansion  
+
+
 
 ```bash
 
@@ -282,6 +287,19 @@ popvae.py --infile populations.mac1miss0.95.renamed.vcf.gz --out results/coho --
 ```
 
 Then plot the results in R 
+
+here's an example with many cluster:
+
+### insert example here
+
+here's an example with pure geography (IBD): 
+
+![example_graph](https://github.com/QuentinRougemont/coho_ldscp_genomics/blob/main/pictures/vae_LD1_LD2.png)
+
+accordingly we obtain a strong correlation with latitude:
+
+![example_graph](https://github.com/QuentinRougemont/coho_ldscp_genomics/blob/main/pictures/vae_LD1_Latitude.png)
+
 
 
 ## 5. GEA Analyses:
