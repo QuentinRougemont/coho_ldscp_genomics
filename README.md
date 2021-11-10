@@ -683,7 +683,13 @@ This should automatically produce the Figure3 from our manuscrit
 
  
 ## 6. Looking for parallelism
-(To fill)
+
+Run the Rscript 
+```R
+00-scripts/gea/05.Figure4.R 
+```
+
+I'll document all of this later.  
 
 
 ## 7. PBS analyses 
@@ -696,6 +702,24 @@ This should automatically produce the Figure3 from our manuscrit
 
 
 ## 8. Association between recombination and outliers
+
+1. estimate recombination
+
+(To fill)
+
+2. identify outliers  
+(see above)
+
+3. test for enrichment:
+
+Look at the script 
+
+```
+00-scripts/gea/05.Figure4.R
+```
+
+I'll doucment all this later
+
 (To fill)
 
 
