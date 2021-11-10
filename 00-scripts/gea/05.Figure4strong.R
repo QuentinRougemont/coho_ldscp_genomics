@@ -1,7 +1,6 @@
 #Script to test for parallelism
 #Author: Q.R
 #date: 20-04-20
-
 ###Verify if libs are installed:
 if("dplyr" %in% rownames(installed.packages()) == FALSE)
 {install.packages("dplyr", repos="https://cloud.r-project.org") }
@@ -22,18 +21,20 @@ if("data.table" %in% rownames(installed.packages()) == FALSE)
 libs <- c('dplyr','reshape2','ade4','data.table', 'magrittr', 'factoextra','vegan','cowplot','ggsci')
 invisible(lapply(libs, library, character.only = TRUE))
 
-freq <- fread("zcat plink.frq.strat.gz")
+freq <- fread("zcat 02-data/genotype/plink.frq.strat.gz")
 freq2 <- dplyr::select(freq,SNP,CLST,MAF)
 pop <- unique(freq2$CLST)
 pop <- data.frame(pop)
 
 ########## DOWNLOAD ENVIRONMENTAL DATA #########################################
-metadata <- read.table("01-info/metadata", h = T, sep = "\t")
+#metadata <- read.table("01-info/metadata", h = T, sep = "\t")
+pop_lat <- read.table("coho_dist_v2.txt",T)
+pop_lat$elevation[pop_lat$elevation == 0.00000 ] <- 1
+
+metadata <- dplyr::select(pop_lat,POP_ID, elevation, dist_max_km, Latitude, Region)
+colnames(metadata)[1] <-c("POP")
 #remove BNV and SAI:
-metadata<- metadata %>%filter(POP !="SAI" & POP !="BNV")
-#replace altitude of zero by 1
-metadata$elevation[metadata$elevation == 0.00000 ] <- 1
-#now takes into accont the standardized elevation * distance interaction
+metadata<- metadata %>%filter(POP !="BNV")
 #standardiztation function:
 range01 <- function(x){(x-min(x))/(max(x)-min(x))}
 metadata$normalized_distance =  metadata$elevation * metadata$dist_max_km
@@ -50,7 +51,8 @@ env1 <- left_join(pop, env1)
 ### read rda results ###########################################################
 rdares <- read.table("candidate_outliers_with_var3_with_chr.txt",T) #%>% select(-CHR, -POS)
 colnames(rdares)[1] <- 'SNP'
-lfmm <- read.table("significant_outlier_control_forLatitudeK5.txt",T)
+
+lfmm <- read.table("significant_outlier_control_forLatitudeK20.txt",T)
 lfmm_dist <- filter(lfmm, var=="Dist")
 
 all <- full_join(lfmm, rdares) #, c("SNP"="snp")) #combine data to exclude for random pca
@@ -60,7 +62,27 @@ dist_rda_snp <- dplyr::select(dist_rda, SNP) #keep only SNPs
 rdafull_lfmm <- merge(lfmm_dist,dist_rda_snp) # by.x="SNP", by.y="V3")
 
 rda_lfmm <- merge(lfmm, rdares)
-rda_lfmm <- rda_lfmm %>% filter(predictor == "normalized_distance" | var == "Dist")
+tab <- as.data.frame(table(rda_lfmm$var, rda_lfmm$predictor))
+write.table(rda_lfmm, "shared_outlier.txt", quote = F, row.names = F)
+write.table(rdafull_lfmm, "shared_outlier_distance.txt", quote = F, row.names = F)
+write.table(tab, "table_of_shared_outliers.txt", quote = F ) 
+sink("table_of_shared_outliers.txt")
+table(rda_lfmm$var, rda_lfmm$predictor)
+sink()
+
+
+#keep strong outlier
+rda_strong <- filter(dist_rda, correlation > 0.64)
+lfmm_strong <- filter(lfmm_dist, BH <0.009)
+rda_strong_snp <- select(rda_strong , SNP)
+#strong <- merge(lfmm_dist, rda_strong)
+strong <- merge(lfmm_strong, rda_strong)
+
+write.table(strong,"shared_outlier_distance_strong.txt",quote=F,row.names=F)
+
+rdafull_lfmm <- strong
+
+#rda_lfmm <- rda_lfmm %>% filter(predictor == "normalized_distance" | var == "Dist")
 ################################################################################
 ################################################################################
 ## subset frequencies on random samples:
@@ -91,6 +113,8 @@ eig.val$eig <- eig.val$variance.percent/100
 expected <- bstick(length(eig.val$eig) ) #get expected value given number of axis    
 signif <- eig.val$eig > expected                                                     
 signif[1:10] ##only the first axis should be significant if we successfully capture the effect of distance 
+write.table(eig.val, "eigenvalue", quote=F, row.names=F)
+write.table(signif, "siginificativity_of_pca.txt", quote = F, row.names = F)
 ######## Prepare data for PLOT #########################################
 library(ggsci)
 strata <- env1
@@ -139,7 +163,9 @@ res4 = (lm(tmpdist$coord ~ 1))
 AIC(res0,res1,res2,res3, res4)
 
 summary(res3)
-
+sink("resultats_lm_random.txt")
+print(summary(res3))
+sink()
 tmpdist$grp <- gsub("short","short-distance",tmpdist$grp)
 tmpdist$grp <- gsub("long","long-distance",tmpdist$grp)
 tmpdist$Region[tmpdist$Region=="Washington&Oregon"] <- "Cascadia"
@@ -163,6 +189,9 @@ res4 = (lm(tmpdist$coord ~ 1))
 AIC(res0,res1,res2,res3, res4)
 
 summary(res3)
+sink("resultats_lm_outliers.txt")
+print(summary(res3))
+sink()
 
 tmpdist$grp <- gsub("short","short-distance",tmpdist$grp)
 tmpdist$grp <- gsub("long","long-distance",tmpdist$grp)
@@ -209,10 +238,6 @@ first_row = plot_grid(plot_Random, labels = c('A'))
 second_row = plot_grid(pRandom, labels = c('B'), nrow = 1)
 gg_all = plot_grid(first_row, second_row, labels=c('', ''), ncol=1)
 
-pdf(file="FigureS11_ABC.pdf", 15,10)
-gg_all
-dev.off()
-
 ###########################################################################################
 ## 	look at the MAF and frequency shift
 ############################################################################################
@@ -224,7 +249,7 @@ freqshift$grp <- gsub("short-distance","0-short", freqshift$grp )
 freqshiftLFMM_RDA <- freqshift
 
 ## random SNP
-freqshift <- cbind(tmpdistLFMM_RDA,freqLFMM_RDA) %>%
+freqshift <- cbind(tmpdistRandom,freqRandom) %>%
    select( -contrib, -coord, -Latitude,-elevation, -dist_max_km, -normalized_distance,-Region)  %>%
    reshape2::melt() %>% group_by(grp,variable) %>% summarise(mean=mean(value))
 
@@ -234,7 +259,12 @@ freqshiftRandom <- freqshift
 
 delta <-  dcast(freqshiftLFMM_RDA, variable ~ grp)
 delta$diff = delta$`long-distance` - delta$`0-short`
+print("looking at shift in allele frequency")
 summary(delta$diff)
+
+sink("allele_frequency_shit.txt")
+summary(delta$diff)
+sink()
 
 ####################################################################################################
 #plot all shared_strong_LFMM SNPs:
@@ -265,7 +295,7 @@ shift_Random <- ggplot(freqshiftRandom, aes(x=grp, y=mean, group=variable)) +
         strip.text.x = element_text(size=12)) + 
   theme(panel.grid.major = element_blank() )
 
-pdf(file="Figure4AB.pdf",12,7)
+pdf(file="Figure4ABstrong.pdf",12,7)
 plot_grid(
   plot_LFMM_RDA,
   shift_LFMM_RDA, 
@@ -273,10 +303,17 @@ plot_grid(
   label_size = 12)
 dev.off()
 
-pdf(file="FigureS12.pdf",12,7)
-plot_grid(
-  shift_Random, 
-  labels = c("A"), ncol = 2,
-  label_size = 12)
+first_row = plot_grid(plot_Random, shift_Random, labels = c('A','B'))
+second_row = plot_grid(pRandom, labels = c('C'), nrow = 1)
+gg_all = plot_grid(first_row, 
+    second_row, 
+    labels = c('', ''), 
+    ncol = 1,
+    rel_heights = c(1,1.25) )
+
+
+pdf(file="FigureS11.pdf",10,12)
+gg_all
+
 dev.off()
 

@@ -22,59 +22,59 @@ if("corrplot" %in% rownames(installed.packages()) == FALSE)
 libs <- c('dplyr','reshape2','data.table', 'magrittr','vegan','corrplot')
 invisible(lapply(libs, library, character.only = TRUE))
 
-################## DOWNLOAD SNP frequency data      ############################
-freq <- fread("zcat plink.frq.strat.gz") #obtained from plink
+
+###### DOWLOAD SNP frequency data ###########################################################
+freq <- fread("zcat 02-data/genotype/plink.frq.strat.gz") #obtained from plink
 freq2 <- dplyr::select(freq,SNP,CLST,MAF)
-freq3 <- reshape2::dcast(freq2,SNP~CLST)
-freq3 <- freq3[,-1]
-freq4 <- t(freq3)
-pop <- unique(freq2$CLST)
+freq3 <- reshape2::dcast(freq2,CLST ~ SNP)
+freq4 <- freq3[,-1]
+pop <- freq3$CLST
 pop <- data.frame(pop)
-snps <- unique(freq2$SNP)
-colnames(freq4) <- snps
-
-########## DOWNLOAD ENVIRONMENTAL DATA #########################################
-metadata <- read.table("01-info/metadata", h = T, sep = "\t")
-#remove BNV and SAI:
-metadata<- metadata %>%filter(POP !="SAI" & POP !="BNV")
-
-#remove BNV and SAI:
-geol <- read.table("02-data/env/geology", T)
-geol <- geol %>%filter(POP !="SAI" & POP !="BNV")
-
+snp = colnames(freq3)
+##############################################################################################
+###### DOWNLOAD ENVIRONMENTAL  DATA  ########################################################
+pop_lat <- read.table("coho_dist_v2.txt",T)
+pop_lat <- dplyr::select(pop_lat,POP_ID, elevation, dist_max_km, Latitude, Region)
 #replace altitude of zero by 1
-metadata$elevation[metadata$elevation == 0.00000 ] <- 1
+pop_lat$elevation[pop_lat$elevation == 0.00000 ] <- 1
+enviro <-read.table("climat_epic4_17_07_2021_v2.txt",T)
+geol <- read.table("era_rocktype_quanti_v2.txt",T)
+enviro <- merge(enviro, geol, by="SITE")
+ 
+colnames(pop) <- "SITE"
+enviro <- merge(pop, enviro, by = "SITE",  sort=F)
+enviro <- filter(enviro, SITE %in% pop$SITE)
+####### PERFORM PCA ON ENVT VAR #################################################
+X.temp <- dudi.pca(df = enviro[, 3:57], center = T, scale = T, scannf = FALSE, nf = 4)
+X.prec  <- dudi.pca(df = enviro[, 58:97], center = T, scale = T, scannf = FALSE, nf = 4)
+
+prec.ind <- get_pca_ind(X.prec)
+temp.ind <- get_pca_ind(X.temp)
+colnames(temp.ind$coord) <- c("Temperature1","Temperature2","Temperature3","Temperature4")
+colnames(prec.ind$coord) <- c("Precipitation1","Precipitation2","Precipitation3")
+#keep significant axis (4 in temperaturure and 3 in precipitation and bind population name :
+temp <- cbind(enviro$SITE, temp.ind$coord[,c(1:4)])
+prec <- cbind(enviro$SITE, prec.ind$coord[,c(1:3)])
+colnames(temp)[1] <- "SITE"
+colnames(prec)[1] <- "SITE"
+
+env1 <- dplyr::select(enviro, SITE,ROCK)
+env1 <- left_join(env1, temp  ) #$coord[,c(1:3)])
+env1 <- left_join(env1, prec )  #$coord[,c(1:3)])
+colnames(pop_lat)[1]<- "SITE"
+env2 <- merge(env1, pop_lat, by="SITE")
 
 #now takes into accont the standardized elevation * distance interaction
 #standardiztation function:
 range01 <- function(x){(x-min(x))/(max(x)-min(x))}
-metadata$normalized_distance =  metadata$elevation * metadata$dist_max_km
-metadata$normalized_distance <- range01(metadata$normalized_distance)
+env2$normalized_distance =  env2$elevation * env2$dist_max_km
+env2$normalized_distance <- range01(env2$normalized_distance)
+#Keep only wanted variable for RDA:
+env2 <- left_join(pop, env2) #, c("pop"="SITE")) 
 
-temp <- read.table("02-data/env/temperature_coordinates_pca.txt", T)
-prec <- read.table("02-data/env/precipitation_coordinates_pca.txt", T)
-
-#merge all:
-env1 <- dplyr::select(metadata, POP, Latitude, normalized_distance, Region)
-env1 <- merge(env1, temp)
-env1 <- merge(env1, prec)
-env1 <- merge(env1, geol)
-
-#remplacer avec sed directement dans metadata, geology et bioclim
-env1 <- env1[order(env1$POP),]
-
-#ensuire that environmental variable will match the genotype data order:
-colnames(pop) <- "POP"
-env1 <- left_join(pop, env1) 
-
-#choose the variable we want to work with:
-env <- select(env1, -POP, -Region)
-
-#rename for readiblity of the plot:
-colnames(env) <- c("Latitude","normalized_distance", 
-    "TemperaturePC1", "TemperaturePC2", "TemperaturePC3", "TemperaturePC4",
-    "PrecipitationPC1", "PrecipitationPC2", "PrecipitationPC3", 
-    "geology")
+#remove unwanted variable :
+env <- dplyr::select(env2, -SITE, -elevation, -Region, -dist_max_km)
+colnames(env)[1] <- "Geology"
 
 #write the correlation 
 mat <- round(cor(env),2)
@@ -83,13 +83,15 @@ pdf(file="corrplot.pdf")
 corrplot(mat, method = "number", type = "lower")
 dev.off()
 
-
 ####################### Now perform the RDA ####################################
-rda1 <- rda(freq4 ~ geology +
-    TemperaturePC1 + TemperaturePC2 + TemperaturePC3 + TemperaturePC4 + 
-    PrecipitationPC1 + PrecipitationPC2 + PrecipitationPC3 + normalized_distance +
+rda1 <- rda(freq4 ~ Geology +
+    Temperature1 + Temperature2 + Temperature3 + Temperature4 + 
+    Precipitation1 + 
+    Precipitation2 + 
+    Precipitation3 + normalized_distance +
     Condition(Latitude) , 
     data=env, scale=T)
+
 
 ######  significance testing  ##################################################
 
