@@ -3,6 +3,7 @@ library(dplyr);library(data.table);library(lme4);library(MuMIn)
 
 ####################################################################################################
 #### loading recombination data ##############
+#these will be push on github
 recomb <-read.table("ALL.recomb250kb.gz")
 colnames(recomb) <- c('POP','CHR','START','MID','END','N','RECOMB')
 m_rec <- recomb %>% group_by(CHR,START,END) %>% summarise(mean=mean(RECOMB), n =mean(N))
@@ -43,14 +44,14 @@ table(recomb$state)
 ###################### WORK ON OUTLIERS ###########################################################
 ##### Now we will test the influence of recombination on outliers #############
 #RDA results 
-RDA <- read.table("01.RDA_LFMM/candidate_outliers_with_var3_with_chr.txt",T)
+RDA <- read.table("RDA_LFMM/candidate_outliers_with_var3_with_chr.txt",T)
 colnames(RDA)[1] <- "SNP"
 colnames(RDA)[2] <- "CHR"
 colnames(RDA)[3] <- "POS"
 RDA$CHR<- gsub("Okis","",RDA$CHR)  
 
 ## read lfmm results:
-lfmm <- read.table("01.RDA_LFMM/significant_outlier_control_forLatitudeK20.txt" ,T)
+lfmm <- read.table("RDA_LFMM/significant_outlier_control_forLatitudeK20.txt" ,T)
 lfmm$CHR<- gsub("Okis","",lfmm$CHR)  
 rdalfmm <- merge(RDA,lfmm) 
 RDA <- rdalfmm

@@ -17,7 +17,7 @@ pop <- data.frame(pop) %>% set_colnames(.,c("POP"))
 pca1 <- dudi.pca(freq4,scale=FALSE,scannf=FALSE)
 
 #load strata
-strata <- read.table("pop_ind_region_latitute_corrected3.txt") 
+strata <- read.table("01-info/pop_ind_region_latitute_corrected3.txt") 
 strata <- select(strata, V2,V6) %>% 
     set_colnames(.,c("POP","REGION"))
 strata <- unique(strata)

@@ -36,9 +36,9 @@ beta <- read.table("beta_iovl_ci",T) %>% select(beta) %>% set_colnames(.,c("beta
 beta$POP <- rownames(beta)
 beta[which(beta$POP == "DRA" ), 2] <- "WAC"
 
-meta <- read.table("metadata.txt", T, sep = "\t") %>% 
+meta <- read.table("01-info/metadata.txt", T, sep = "\t") %>% 
     select(POP, Region, dist_max_km)
-mouth_dist <- read.table("embouchure_coho_dist.txt.gz", T) %>% 
+mouth_dist <- read.table("01-info/embouchure_coho_dist.txt.gz", T) %>% 
     select(-LON_emb, -LAT_emb)
 meta <- merge(meta, mouth_dist, by.x = "POP", by.y = "SITE")
 meta$dist_total <- meta$dist_max_km + meta$dist_SCO_3k

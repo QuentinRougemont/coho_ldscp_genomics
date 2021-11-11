@@ -3,7 +3,7 @@
 libs <- c('ggplot2','data.table', 'magrittr','dplyr')
 invisible(lapply(libs, library, character.only = TRUE))
 
-strata <- read.table("02-info/pop_ind_region_latitute_corrected3.txt") 
+strata <- read.table("01-info/pop_ind_region_latitute_corrected3.txt") 
 strata <- select(strata, V2,V6) %>% 
     set_colnames(.,c("FID","REGION"))
 strata <- unique(strata)

@@ -710,7 +710,7 @@ I'll document all of this later.
 2. identify outliers  
 (see above)
 
-3. test for enrichment:
+3. test for how outlier responds in a parallel and how they are shared spatially:
 
 Look at the script 
 
