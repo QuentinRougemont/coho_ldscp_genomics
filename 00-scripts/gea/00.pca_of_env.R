@@ -22,17 +22,18 @@ libs <- c('dplyr','ade4','factoextra','vegan','cowplot')
 invisible(lapply(libs, library, character.only = TRUE))
 
 ###### DOWNLOAD ENV DATA
-metadata <- read.table("01-info/metadata", h = T, sep = "\t")
+pop <- read.table("01-info/population.txt", h = T)
 
-bioclim <- read.table("01-info/bioclimatic_var", h = T, sep = "\t" )
-#remove BNV and SAI:
-bioclim <- bioclim %>%filter(POP !="SAI" & POP !="BNV")
+bioclim <- read.table("climat_epic4_wanted_pop.txt", h = T, sep = "\t")
+
+#preserve only the wanted population for the analyses using a joint:
+bioclim <- merge(pop, bioclim, by = "SITE", sort = F)
 
 ####### PERFORM PCA ON ENVT VAR #################################################
 #will do a PCA on the dataaset that contains only climatic variables:
 #separate temperature and precipitation and keep only significant axis or only first axis
-X.temp <- dudi.pca(df = bioclim[, 2:56], center = T, scale = T, scannf = FALSE) #nf = 3)
-X.prec  <- dudi.pca(df = bioclim[, 57:96], center = T, scale = T, scannf = FALSE) # nf = 3)
+X.temp <- dudi.pca(df = bioclim[, 2:57], center = T, scale = T, scannf = FALSE) #nf = 3)
+X.prec  <- dudi.pca(df = bioclim[, 58:97], center = T, scale = T, scannf = FALSE) # nf = 3)
 
 ## singificance of axis
 eig.val <- get_eigenvalue(X.temp) #first we get the eigen value in an easy form
@@ -93,8 +94,8 @@ dev.off()
 #We will keep all three axis (significant, but could also work on the first only:
 prec.ind <- get_pca_ind(X.prec)
 temp.ind <- get_pca_ind(X.temp)
-colnames(temp.ind$coord) <- c("Temp1","Temp2","Temp3","Temp4")
-colnames(prec.ind$coord) <- c("Prec1","Prec2","Prec3")
+colnames(temp.ind$coord) <- c("TemperaturePC1","TemperaturePC2","TemperaturePC3","TemperaturePC4")
+colnames(prec.ind$coord) <- c("PrecipitationPC1","PrecipitationPC2","PrecipitationPC3")
 
 prec = cbind(bioclim$POP, prec.ind$coord)
 temp = cbind(bioclim$POP, temp.ind$coord)
