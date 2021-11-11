@@ -1,3 +1,5 @@
+#!/usr/bin/env Rscript
+
 #script to run LFMM and plot the results.
 #needs to be clean
 #author: QR
@@ -6,19 +8,9 @@ if("dplyr" %in% rownames(installed.packages()) == FALSE)
 {install.packages("dplyr", repos="https://cloud.r-project.org") }
 if("magrittr" %in% rownames(installed.packages()) == FALSE)
 {install.packages("magrittr", repos="https://cloud.r-project.org") }
-if("reshape" %in% rownames(installed.packages()) == FALSE)
-{install.packages("reshape", repos="https://cloud.r-project.org") }
-if("data.table" %in% rownames(installed.packages()) == FALSE)
-{install.packages("data.table", repos="https://cloud.r-project.org") }
-##for LFMM1:
-if("lfmm" %in% rownames(installed.packages()) == FALSE)
-{install.packages("lfmm", repos="https://cloud.r-project.org") }
-##for LFMM2:
-if("LEA" %in% rownames(installed.packages()) == FALSE)
-{BiocManager::install("LEA") }
 
 ## load libs
-libs <- c('dplyr','reshape2','data.table', 'magrittr',  'lfmm')
+libs <- c('dplyr','data.table','magrittr', 'ade4','vegan','factoextra', 'lfmm')
 invisible(lapply(libs, library, character.only = TRUE))
 
 ## read lfmm file:
@@ -26,6 +18,7 @@ argv <- commandArgs(T)
 
 file <- argv[1]
 snp  <- argv[2]
+k <- as.numeric(argv[3])
 
 input = paste0("zcat ", file)
 dat <- fread(input)
@@ -34,47 +27,50 @@ loci <- read.table(snp) %>%
     #set_colnames(.,c("CHR","POS","SNP")) 
 
 ##################  DOWNLOAD ENV DATA ########################  
-metadata <- read.table("01-info/metadata", h = T, sep = "\t")
-metadata <- metadata %>% filter(POP !="SAI" & POP !="BNV")
-
-geol <- read.table("02-data/env/geology", T)
-#remove BNV and SAI:
-geol <- geol %>% filter(POP !="SAI" & POP !="BNV")
-#remove BNV and SAI:
-
+pop_lat <- read.table("02-data/env/coho_dist_v2.txt",T)
+pop_lat <- dplyr::select(pop_lat,POP_ID, elevation, dist_max_km, Latitude, Region)
 #replace altitude of zero by 1
-metadata$elevation[metadata$elevation == 0.00000 ] <- 1
+pop_lat$elevation[pop_lat$elevation == 0.00000 ] <- 1
+enviro <-read.table("02-data/env/climat_epic4_wanted_pop.txt",T)
+geol <- read.table("02-data/env/era_rocktype_quanti_v2.txt",T)
+enviro <- merge(enviro, geol, by="SITE")
+pop = read.table("pop")
+colnames(pop) <- "SITE"
+enviro <- merge(pop, enviro, sort=F)
+
+####### PERFORM PCA ON ENVT VAR #################################################
+X.temp <- dudi.pca(df = enviro[, 3:57], center = T, scale = T, scannf = FALSE, nf = 4)
+X.prec  <- dudi.pca(df = enviro[, 58:97], center = T, scale = T, scannf = FALSE, nf = 4)
+prec.ind <- get_pca_ind(X.prec)
+temp.ind <- get_pca_ind(X.temp)
+colnames(temp.ind$coord) <- c("Temperature1","Temperature2","Temperature3","Temperature4")
+colnames(prec.ind$coord) <- c("Precipitation1","Precipitation2","Precipitation3")
+temp <- cbind(enviro$SITE, temp.ind$coord[,c(1:4)])
+prec <- cbind(enviro$SITE, prec.ind$coord[,c(1:3)])
+colnames(temp)[1] <- "SITE"
+colnames(prec)[1] <- "SITE"
+
+env1 <- dplyr::select(enviro, SITE,ROCK)
+env1 <- left_join(env1, temp  ) #$coord[,c(1:3)])
+env1 <- left_join(env1, prec )  #$coord[,c(1:3)])
+colnames(pop_lat)[1]<- "SITE"
+env2 <- merge(env1, pop_lat, by="SITE")
 
 #now takes into accont the standardized elevation * distance interaction
 #standardiztation function:
 range01 <- function(x){(x-min(x))/(max(x)-min(x))}
-metadata$normalized_distance =  metadata$elevation * metadata$dist_max_km
-metadata$normalized_distance <- range01(metadata$normalized_distance)
-
-####### READ PCA axis #################################################
-temp <- read.table("02-data/env/temperature_coordinates_pca.txt", T)
-prec <- read.table("02-data/env/precipitation_coordinates_pca.txt", T)
-
-#merge all environmental variable:
-env1 <- dplyr::select(metadata, POP, Latitude, normalized_distance)
-env1 <- merge(env1, temp)
-env1 <- merge(env1, prec)
-env1 <- merge(env1, geol)
-
+env2$normalized_distance =  env2$elevation * env2$dist_max_km
+env2$normalized_distance <- range01(env2$normalized_distance)
+#Keep only wanted variable for RDA:
+env2 <- left_join(pop, env2) #, c("pop"="SITE")) 
+env <- dplyr::select(env2,  -elevation, -Region, -dist_max_km)
+colnames(env)[2] <- "Geology"
 #set them to an individual level now:
-ind <- read.table("01-info/strata.txt") %>% set_colnames(., c("POP","IND"))
-
+ind <- read.table("01-info/strata.txt") %>% set_colnames(., c("SITE","IND"))
+env <- filter(env, SITE %in% pop$SITE)
 #ici il faut réordooner env1 pour qu'il matche l'ordre des ind?
-
-X <- left_join(ind,env1)
-X <- merge(ind,env1, sort = F)
-
-#WAC: 1593-1638
-#check the position of WAC in env data:
-#X[1593:1638,1:5]
-
-X <-  dplyr::select(X, -POP, -IND)                                                                                                                                                         
-#X <-  dplyr::select(X, -POP, -IND, -Temp4)  
+X <- merge(ind, env, sort = F) # by.x="POP", by.y="SITE", sort = F)
+X <-  dplyr::select(X, -SITE, -IND)                                                                                                                                                         
 
 ### data imputation for LFMM1:
 #dat[dat == 9 ] <- NA   
@@ -85,14 +81,14 @@ Y <- apply(dat,
     })
 
 
-pc <- prcomp(Y)
+#pc <- prcomp(Y)
 
-pdf(file="pca_variance.pdf")
-plot(pc$sdev[1:100]^2, xlab = 'PC', ylab = "Variance explained")
-dev.off()
+#pdf(file="pca_variance.pdf")
+#plot(pc$sdev[1:100]^2, xlab = 'PC', ylab = "Variance explained")
+#dev.off()
 
 #run lfmm
-for (K in c(5, 6, 12, 20, 40, 60, 100, 200)){
+for (K in k){
 mod.lfmm <- lfmm_ridge(Y = Y,
                         X = X,
                         K = K) #we could increase to 10 groups at most
@@ -134,25 +130,25 @@ mod.lfmm <- lfmm_ridge(Y = Y,
     sep = "\t", quote = F, row.names = F)
 
     #Extract significiant variable using a stringeant p-value cutoff!
-    geology <- filter(padj_loc, geology <= 0.02) %>% select(V1,V2,V3,geology) %>% 
+    geology <- filter(padj_loc, geology < 0.01) %>% select(V1,V2,V3,geology) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Temp1 <- filter(padj_loc,Temp1 <= 0.02) %>% select(V1,V2,V3,Temp1) %>% 
+    Temp1 <- filter(padj_loc,Temp1 < 0.01) %>% select(V1,V2,V3,Temp1) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH")) 
-    Temp2 <- filter(padj_loc,Temp2 <= 0.02) %>% select(V1,V2,V3,Temp2) %>% 
+    Temp2 <- filter(padj_loc,Temp2 < 0.01) %>% select(V1,V2,V3,Temp2) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Temp3 <- filter(padj_loc,Temp3 <= 0.02) %>% select(V1,V2,V3,Temp3) %>% 
+    Temp3 <- filter(padj_loc,Temp3 < 0.01) %>% select(V1,V2,V3,Temp3) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Temp4 <- filter(padj_loc,Temp4 <= 0.02) %>% select(V1,V2,V3,Temp4) %>% 
+    Temp4 <- filter(padj_loc,Temp4 < 0.01) %>% select(V1,V2,V3,Temp4) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Prec1 <- filter(padj_loc,Prec1 <= 0.02) %>% select(V1,V2,V3,Prec1) %>% 
+    Prec1 <- filter(padj_loc,Prec1 < 0.01) %>% select(V1,V2,V3,Prec1) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Prec2 <- filter(padj_loc,Prec2 <= 0.02) %>% select(V1,V2,V3,Prec2) %>% 
+    Prec2 <- filter(padj_loc,Prec2 < 0.01) %>% select(V1,V2,V3,Prec2) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Prec3 <- filter(padj_loc,Prec3 <= 0.02) %>% select(V1,V2,V3,Prec3) %>% 
+    Prec3 <- filter(padj_loc,Prec3 < 0.01) %>% select(V1,V2,V3,Prec3) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Latitude <- filter(padj_loc,Latitude <= 0.02) %>% select(V1,V2,V3,Latitude) %>% 
+    Latitude <- filter(padj_loc,Latitude < 0.01) %>% select(V1,V2,V3,Latitude) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH"))
-    Dist <- filter(padj_loc,normalized_distance <= 0.02) %>% 
+    Dist <- filter(padj_loc,normalized_distance < 0.01) %>% 
         select(V1,V2,V3,normalized_distance) %>% 
         set_colnames(.,c("CHR","POS","SNP","BH")) 
     
@@ -167,7 +163,7 @@ mod.lfmm <- lfmm_ridge(Y = Y,
     Latitude$var = "Latitude"
     Dist$var = "Dist"
     
-    all <- rbind(geology, Temp1, Temp2, Temp3, Temp4,
+    all <- rbind(geology, Temp1, Temp2, Temp3, 
         Prec1, Prec2, Prec3, Dist)
     
     #remove variable that covary with latitude:

@@ -28,7 +28,7 @@ pop <- data.frame(pop)
 
 ########## DOWNLOAD ENVIRONMENTAL DATA #########################################
 #metadata <- read.table("01-info/metadata", h = T, sep = "\t")
-pop_lat <- read.table("coho_dist_v2.txt",T)
+pop_lat <- read.table("02-data/env/coho_dist_v2.txt",T)
 pop_lat$elevation[pop_lat$elevation == 0.00000 ] <- 1
 
 metadata <- dplyr::select(pop_lat,POP_ID, elevation, dist_max_km, Latitude, Region)

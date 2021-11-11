@@ -16,17 +16,17 @@ pop <- data.frame(pop)
 snp = colnames(freq3)
 ##############################################################################################
 ###### DOWNLOAD ENVIRONMENTAL  DATA  ########################################################
-pop_lat <- read.table("coho_dist_v2.txt",T)
+pop_lat <- read.table("02-data/env/coho_dist_v2.txt",T)
 pop_lat <- dplyr::select(pop_lat,POP_ID, elevation, dist_max_km, Latitude, Region)
 #replace altitude of zero by 1
 pop_lat$elevation[pop_lat$elevation == 0.00000 ] <- 1
-enviro <-read.table("climat_epic4_17_07_2021_v2.txt",T)
-geol <- read.table("era_rocktype_quanti_v2.txt",T)
+enviro <-read.table("02-data/env/climat_epic4_wanted_pop.txt",T)
+geol <- read.table("02-data/env/era_rocktype_quanti_v2.txt",T)
 enviro <- merge(enviro, geol, by="SITE")
- 
 colnames(pop) <- "SITE"
 enviro <- merge(pop, enviro, by = "SITE",  sort=F)
 enviro <- filter(enviro, SITE %in% pop$SITE)
+
 ####### PERFORM PCA ON ENVT VAR #################################################
 X.temp <- dudi.pca(df = enviro[, 3:57], center = T, scale = T, scannf = FALSE, nf = 4)
 X.prec  <- dudi.pca(df = enviro[, 58:97], center = T, scale = T, scannf = FALSE, nf = 4)

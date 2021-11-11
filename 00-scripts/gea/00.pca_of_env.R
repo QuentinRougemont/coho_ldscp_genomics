@@ -24,7 +24,7 @@ invisible(lapply(libs, library, character.only = TRUE))
 ###### DOWNLOAD ENV DATA
 pop <- read.table("01-info/population.txt", h = T)
 
-bioclim <- read.table("climat_epic4_wanted_pop.txt", h = T, sep = "\t")
+bioclim <- read.table("02-data/env/climat_epic4_wanted_pop.txt", h = T, sep = "\t")
 
 #preserve only the wanted population for the analyses using a joint:
 bioclim <- merge(pop, bioclim, by = "SITE", sort = F)
@@ -32,7 +32,7 @@ bioclim <- merge(pop, bioclim, by = "SITE", sort = F)
 ####### PERFORM PCA ON ENVT VAR #################################################
 #will do a PCA on the dataaset that contains only climatic variables:
 #separate temperature and precipitation and keep only significant axis or only first axis
-X.temp <- dudi.pca(df = bioclim[, 2:57], center = T, scale = T, scannf = FALSE) #nf = 3)
+X.temp <- dudi.pca(df = bioclim[, 3:57], center = T, scale = T, scannf = FALSE) #nf = 3)
 X.prec  <- dudi.pca(df = bioclim[, 58:97], center = T, scale = T, scannf = FALSE) # nf = 3)
 
 ## singificance of axis
