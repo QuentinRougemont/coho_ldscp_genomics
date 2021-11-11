@@ -32,10 +32,9 @@ pop_lat <- dplyr::select(pop_lat,POP_ID, elevation, dist_max_km, Latitude, Regio
 #replace altitude of zero by 1
 pop_lat$elevation[pop_lat$elevation == 0.00000 ] <- 1
 enviro <-read.table("02-data/env/climat_epic4_wanted_pop.txt",T)
-geol <- read.table("02-data/env/era_rocktype_quanti_v2.txt",T)
+geol   <- read.table("02-data/env/era_rocktype_quanti_v2.txt",T)
 enviro <- merge(enviro, geol, by="SITE")
-pop = read.table("pop")
-colnames(pop) <- "SITE"
+pop    <- read.table("01-info/population.txt", h = T)
 enviro <- merge(pop, enviro, sort=F)
 
 ####### PERFORM PCA ON ENVT VAR #################################################
@@ -59,14 +58,14 @@ env2 <- merge(env1, pop_lat, by="SITE")
 #now takes into accont the standardized elevation * distance interaction
 #standardiztation function:
 range01 <- function(x){(x-min(x))/(max(x)-min(x))}
-env2$normalized_distance =  env2$elevation * env2$dist_max_km
+env2$normalized_distance <-  env2$elevation * env2$dist_max_km
 env2$normalized_distance <- range01(env2$normalized_distance)
 #Keep only wanted variable for RDA:
 env2 <- left_join(pop, env2) #, c("pop"="SITE")) 
-env <- dplyr::select(env2,  -elevation, -Region, -dist_max_km)
+env  <- dplyr::select(env2,  -elevation, -Region, -dist_max_km)
 colnames(env)[2] <- "Geology"
 #set them to an individual level now:
-ind <- read.table("01-info/strata.txt") %>% set_colnames(., c("SITE","IND"))
+ind <- read.table("01-info/strata_gea.txt") %>% set_colnames(., c("SITE","IND"))
 env <- filter(env, SITE %in% pop$SITE)
 #ici il faut réordooner env1 pour qu'il matche l'ordre des ind?
 X <- merge(ind, env, sort = F) # by.x="POP", by.y="SITE", sort = F)
