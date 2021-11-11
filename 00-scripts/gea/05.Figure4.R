@@ -71,9 +71,9 @@ table(rda_lfmm$var, rda_lfmm$predictor)
 sink()
 
 
-#keep strong outlier
-rda_strong <- filter(dist_rda, correlation > 0.64)
-lfmm_strong <- filter(lfmm_dist, BH <0.009)
+#keep strong outlier namely those with low p-value in LFMM and high correlation in the RDA circle
+rda_strong <- filter(dist_rda, correlation > 0.65)
+lfmm_strong <- filter(lfmm_dist, BH <0.001)
 rda_strong_snp <- select(rda_strong , SNP)
 #strong <- merge(lfmm_dist, rda_strong)
 strong <- merge(lfmm_strong, rda_strong)
