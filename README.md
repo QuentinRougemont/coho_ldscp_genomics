@@ -290,7 +290,18 @@ Then plot the results in R
 
 here's an example with many cluster:
 
-### insert example here
+![example_graph](https://github.com/QuentinRougemont/coho_ldscp_genomics/blob/main/pictures/Fig2.git.png)
+
+this is the graph I obtained at first run of the VAE and which is in our manuscript. Almost all sampling localities have been separated in discrete cluster). 
+ 
+Populations further away in space are also further away on the graph.  
+
+In the panel B/C I zoomed in the location of HaidaGwaii because there are few samples there. We can see that we are able to finely discriminate all samples and that those very closed in space are very closed in the Graph.   
+
+The same results could be obtained by running many separate PCA. Here only one run was necessary.
+
+At the same time therese strong IBD in our daya.
+
 
 here's an example with pure geography (IBD): 
 
@@ -705,10 +716,20 @@ I'll document all of this later.
 
 1. estimate recombination
 
-(To fill)
+Recombination was estimated using 30X whole Genome data from this [preprint](https://www.biorxiv.org/content/10.1101/732750v2).  
+(note that the WGS data were removed from the published article and will be published later)   
+LDhat was used with this [pipeline](https://github.com/QuentinRougemont/LDhat_workflow). To reproduce these estimate simply use the pipeline.  
+
+Rho was estimated for each population separately  
+
+Then results were summarized into 250 kb windows and each populations were concatenated together  
+
+The scripts [here](https://github.com/QuentinRougemont/LDhat_workflow/blob/master/02-scripts/06.run_slidingwindows.sh) should enables to summarize the data with a bit of modifications depending on your data
+
 
 2. identify outliers  
-(see above)
+
+outliers were identified in step 5 or step 7 for the RDA
 
 3. test for how outlier responds in a parallel and how they are shared spatially:
 
