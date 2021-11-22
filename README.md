@@ -725,3 +725,12 @@ I'll doucment all this later
 
 ## 9. looking for candidate
   * No GO enrichment instead I only use SNPeff and look for meaningfull outliers.
+
+
+## 10. Other stuff 
+ * below is a zoomable map for BC/Thompson/HaidaGwaii that include all sample sites used here. 
+ * may be usefull for users  
+ * This map was obtained with very simple code in R
+
+![example_graph](https://github.com/QuentinRougemont/coho_ldscp_genomics/blob/main/pictures/sampling_map.git.png) 
+
