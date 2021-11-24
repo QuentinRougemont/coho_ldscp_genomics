@@ -68,8 +68,9 @@ additional metadata (individual name, river abbreviation, Latitude, Longitude, r
 
 To reproduce the filtering you can access the raw vcf from dryad
 
-### 2.1 Filtering vcf
+### 2.1. Filtering vcf
 
+use mostly vcftools and bash to filter vcf. 
 
 ```bash
 
@@ -761,8 +762,7 @@ simply use the script in
 this will run rather rapidly with approximately 20-30Gb of RAM  
 
 
-
-## 5.3.2 RDA
+## 5.3.2 RDA
 
 
 Next we run the RDA in 2 steps
@@ -1055,7 +1055,7 @@ In addition it is possible to explore this by considering either:
 
 
 
-## 11. Other stuff
+## 11. Other stuff
 
  * below is a zoomable map for BC/Thompson/HaidaGwaii that include all sample sites used here. 
  * may be usefull for users  
