@@ -36,15 +36,19 @@ function strata () { cat <(grep "CHR" "$1" ) |\
               sed 's/_/\t/g' | awk '{print $1"\t"$1"_"$2}' > "$2"; }
 ```
 
-#DATA
+# DATA
 
 part of the RAW data are deposited on NCBI [PRJNA647050](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA647050). The remaining samples should be available soon  
 
-RAW vcf and filtered vcf have been depostied on dryad (link to come soon)  
+**RAW vcf** and **filtered vcf** have been depostied on dryad (link to come soon)  
 
-The allele frequency file used in the RDA will be available on dryad  
+The **allele frequency file** used in the RDA will be available on dryad  
 
 Other intermediary file (e.g. LFMM or hierfstat input) can be easily constructed with commands below   
+
+metadata are available for GEA in the folder `02-data/env`  
+
+additional metadata (individual name, river abbreviation, Latitude, Longitude, region of sampling, etc) can be fond in `01-info`   
 
 
 # Steps :
