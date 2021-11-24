@@ -1017,7 +1017,7 @@ This will allow to perform statistical test:
 	* mixed models test 
 
 A plot like the one in FigS15 will be produced. 
-![example_graph](/home/quentin/coho/05.RECOMBINAISON/FigS15.git.png)
+![example_graph](https://github.com/QuentinRougemont/coho_ldscp_genomics/blob/main/pictures/FigS15.git.png)
 
 
 In addition it is possible to explore this by considering either:  
