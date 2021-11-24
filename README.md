@@ -1,7 +1,7 @@
 # landscape_genomics_coho
 scripts to reproduce our landscape genomics results in coho salmon
 
-See paper: Long distance migration is a major factor driving local adaptation at continental scale in a Pacific Salmon by Rougemont et al.
+See paper: Long distance migration is a major factor driving local adaptation at continental scale in a Pacific Salmon by Rougemont et al. available on [BiorXiv](https://www.biorxiv.org/content/10.1101/2021.11.22.469546v1)
 
 all necessary steps are highlighted below:
 
@@ -27,7 +27,7 @@ for filtration:
 
 ANGSD, R & python
 
-#I like to use the following fonction in my .bashrc :
+I like to use the following fonction in my **.bashrc :**
 
 ```bash
 function strata () { cat <(grep "CHR" "$1" ) |\
@@ -76,7 +76,7 @@ use mostly vcftools and bash to filter vcf.
 
 ############################# Filtering RAW VCF ###########################
 
-# in stacks populations was runn requiring:
+# in stacks populations was run requiring:
 # SNP Genotyped in : >70% of the samples
 #                    >70% of the population
 
@@ -116,7 +116,7 @@ sed 1d out.frq | 's/:/\t/g' |cut -f 1,2,7,8 out.frq > frq2
 vcftools --vcf $input --missing-indv --out individuals
 
 #we remove individuals with too many missing data with awk
-awk awk '$5>0.20 {print $1}'  individuals.imiss > blacklisted.individuals.txt
+awk '$5>0.20 {print $1}'  individuals.imiss > blacklisted.individuals.txt
 
 #remove individuals with too much missing data and keep one SNP per locus:  
 vcftools \
@@ -145,7 +145,7 @@ bgzip populations.mac1miss0.95.recode.vcf; tabix -p vcf populations.mac1miss0.95
 
 #then we need to rename part of the population HOP into HOD:
 cut -f 1 strata.txt |sed '2576,2607s/HOP/HOD/g' > new.ind.tmp
-cit -f 1 strata.txt > ind.tmp
+cut -f 1 strata.txt > ind.tmp
 
 paste ind.tmp new.ind.tmp > new_sample_name.txt
 rm *tmp 
@@ -249,7 +249,7 @@ Rscript ./00-scripts/diversity/01.hierfstats.R
 
 Then we will perform plots of the correlation between the distance to the southernmost site and Bst and Hs statistics. 
 
-### Plotting diversity
+### Plotting diversity
 
  
 Run:
@@ -360,7 +360,7 @@ Interestingly, we see that the Russian samples falls within Alaska and is not mu
 
 ### 4b. Running VAE:
 
-Install vae available (here)[https://github.com/kr-colab/popvae]  
+Install vae available [here](https://github.com/kr-colab/popvae). 
 Due to its stochasticity, you'll obtained slightly different results than I did.
 For instance depanding on the parameters used, you may obtained a distinction of nearly all river in separate cluster (Figure 2 of our paper)
 In other case, you'll obtained a continuous distribution of the genotype entierely correlated with latitude. 
@@ -378,13 +378,14 @@ mkdir VAE
 cd VAE
 #copy the vcf 
 ln -s ../02-data/populations.mac1miss0.95.renamed.vcf.gz .
-#create folder to store the results
-
+# create folder to store the results
 mkdir results
-#run popvae with default parameters
+
+# run popvae with default parameters
 popvae.py --infile populations.mac1miss0.95.renamed.vcf.gz --out results/coho --seed 12345
 
-##more advanced use:
+# more advanced use:
+mkdir results2
 popvae.py --infile  populations.mac1miss0.95.renamed.vcf.gz\
     --out results2/coho \ 
     --seed 12345 \
@@ -394,9 +395,62 @@ popvae.py --infile  populations.mac1miss0.95.renamed.vcf.gz\
 
 ```
 
-#advice: try different run to see how results can differ
+**advice**: try different run to see how results can differ
 
-Then plot the results in R 
+Then plot the results in R. This bits of code should to the work:
+
+```R
+library(dplyr);library(cowplot);library(ggplot2);library(tidyr);library(ggsci)
+
+pd <- read.table("coho_latent_coords.txt",T)
+names(pd)[1:2] <- c("LD1","LD2")
+meta <- read.table("01-info/metadata",T, sep="\t" ) %>% select(POP, Latitude, Longitude, Region)
+pd1 <- separate(pd,sampleID,c("POP","ind"),"_")
+pd <- merge(pd1, meta ) #.x="POP",by.y="POP_ID")
+
+############################################################################################### 
+# test correlation  with geography:
+summary(lm(pd$LD1 ~ pd$Latitude))
+summary(lm(pd$LD2 ~ pd$Latitude))
+summary(lm(pd$LD2 ~ pd$Longitude))
+summary(lm(pd$LD1 ~ pd$Longitude))
+summary(lm(pd$LD1 ~ pd$Latitude + pd$Longitude ))
+summary(lm(pd$LD1 ~ pd$Latitude + pd$Longitude + pd$Latitude * pd$Longitude ))
+
+# set colors:
+myColors <- c("blue","orange","red","darkviolet","chocolate4", "springgreen4","green")
+names(myColors) <- levels(pd$Region)
+colScale <- scale_colour_manual(name = "Region",values = myColors)
+
+# plot the 2 ld
+p <- pd %>% 
+  dplyr::rename_at("POP",~"river") %>%
+  #separate(REGION2,c("Rivers",NA), sep ="-" ) #)
+  #ggplot(aes(x=LD1,y=LD2, col= river))+
+  ggplot(aes(x = LD1, y = LD2, col = Region))+
+  colScale +
+  geom_point(size=1) + theme_classic()
+
+haida <- dplyr::filter(pd, Region=="HaidaGwaii") %>% 
+  dplyr::rename_at("POP",~"river") %>%
+  ggplot(aes(x=LD1,y=LD2, col=river))+ #labs(title = "B") +
+  geom_text(aes ( label= river), size=3.5) + theme_classic() +
+  theme(legend.position = "none")  
+h <- haida + scale_color_igv()
+
+all <- ggdraw(p + theme_half_open(12)) +
+    draw_plot(h , .62, .62, .35, .35) +
+        draw_plot_label(
+         c("A", "B"),
+         c(0, 0.45),
+         c(1, 0.95),
+         size = 12)
+
+pdf(file="vae_LD1_LD2.pdf")
+all 
+dev.off()
+
+```
 
 here's an example with many cluster:
 
@@ -534,7 +588,7 @@ this will create the two input-files
 * temperature_coordinates_pca.txt  
 * precipitation_coordinates_pca.txt  
 
- located in 02.data/env/ 
+ located in `02.data/env/` 
 
 This will be used in the GEA  
 
@@ -767,7 +821,7 @@ this will run rather rapidly with approximately 20-30Gb of RAM
 
 Next we run the RDA in 2 steps
 
-* 1. Significance testing 
+* 1. **Significance testing **
 
 First we need to test the significance of environmental data and of the RDA axes.
 This is done through an ANOVA like permutation test of the RDA using the ```anova.cca``` function in R 
@@ -780,7 +834,7 @@ Run the script :
 
 it takes a few hours (~one night) on a cluster
 
-* 2. identify outliers:
+* 2. **identify outliers:**
 
 run the script : 
 
@@ -813,8 +867,10 @@ Run the Rscript
 00-scripts/gea/05.Figure4.R 
 ```
 
-This should automatically produce the Figure4 from our manuscript as well as some statisticall tests
+This should automatically produce the Figure4 from our manuscript as well as some statisticall tests  
+
 See explanation in our methods of the manuscript  
+
 I'll document all of this later.  
 
 
@@ -911,7 +967,7 @@ Whole genome sequences were:
 
 The resulting bam were processed to reconstruct an ancestral sequence with [ancestral_seq.sh](https://github.com/QuentinRougemont/utility_scripts/blob/master/00.ANGSD/ancestral_seq.sh) 
 
-Then Simply follow the script in the order of their number:  
+Then Simply follow the scripts in the order of their number:  
 
  * 1. [00_angsd_bam_to_saf.sh](https://github.com/QuentinRougemont/utility_scripts/blob/master/00.ANGSD/00_angsd_bam_to_saf.sh) 
  * 2. [01_1dsfs.sh](https://github.com/QuentinRougemont/utility_scripts/blob/master/00.ANGSD/01_1dsfs.sh)
