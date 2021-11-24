@@ -71,7 +71,88 @@ To reproduce the filtering you can access the raw vcf from dryad
 ### 2.1 Filtering vcf
 
 
-    (to fill)
+```bash
+
+############################# Filtering RAW VCF ###########################
+
+# in stacks populations was runn requiring:
+# SNP Genotyped in : >70% of the samples
+#                    >70% of the population
+
+
+vcftools \
+      --gzvcf populations.snps.vcf.gz
+        --remove blacklisted_individuals.txt
+        --recode-INFO-all
+        --mac 1
+        --max-meanDP 120
+        --min-meanDP 10
+        --out populations.DP10_120
+        --recode
+
+
+vcftools \
+        --vcf populations.10_120.recode.vcf
+        --recode-INFO-all
+        --max-missing 0.85
+        --out populations.10_120.miss85
+        --recode  
+
+# compute allele frequency and keep one SNP per loci:  
+
+input="populations.10_120.miss85.recode.vcf"  
+
+vcftools \
+        --vcf $input\
+        --freq --out out  
+
+sed 1d out.frq | 's/:/\t/g' |cut -f 1,2,7,8 out.frq > frq2  
+
+
+#compute missing rate per individuals  
+vcftools --vcf $input --missing-indv --out individuals
+
+#we remove individuals with too many missing data with awk
+awk awk '$5>0.20 {print $1}'  individuals.imiss > blacklisted.individuals.txt
+
+#remove individuals with too much missing data and keep one SNP per locus:  
+vcftools \
+     --vcf $input\
+        --remove blacklisted.individuals.txt\
+        --recode-INFO-all\
+        --out populations.mac1\
+        --recode\
+        --snps snp_id.txt\
+
+#then perform a last quality filter:
+vcftools \
+    --vcf populations.mac1.recode.vcf \
+    --max-missing 0.95 \
+    --out populations.mac1miss0.95\
+    --min-meanDP 10 --max-meanDP 120\
+    --recode \
+    --recode-INFO-all
+
+#We don't want to filter on HWE since we may be interested in finding markers under selection 
+#Moreover a global HWE filter is meaningless in highly structured populations
+
+strata populations.mac1miss0.95.recode.vcf
+bgzip populations.mac1miss0.95.recode.vcf; tabix -p vcf populations.mac1miss0.95.recode.vcf.gz
+
+#then we need to rename part of the population HOP into HOD:
+cut -f 1 strata.txt |sed '2576,2607s/HOP/HOD/g' > new.ind.tmp
+cit -f 1 strata.txt > ind.tmp
+
+paste ind.tmp new.ind.tmp > new_sample_name.txt
+rm *tmp 
+
+input=populations.mac1miss0.95.recode.vcf.gz
+
+#then we rename individuals in the vcf 
+bcftools reheader --samples new_sample_name.txt -o ${input%.recode.vcf.gz}.renamed.vcf.gz $input
+
+#this is our final vcf ready for estimating genetic diversity and structure 
+#see below for filtering for GEA
 
 
 ### 2.2. Quality check
@@ -298,8 +379,17 @@ mkdir results
 #run popvae with default parameters
 popvae.py --infile populations.mac1miss0.95.renamed.vcf.gz --out results/coho --seed 12345
 
+##more advanced use:
+popvae.py --infile  populations.mac1miss0.95.renamed.vcf.gz\
+    --out results2/coho \ 
+    --seed 12345 \
+    --search_network_sizes \ 
+    --train_prop 0.90
+
 
 ```
+
+#advice: try different run to see how results can differ
 
 Then plot the results in R 
 
