@@ -120,6 +120,7 @@ vcftools \
      --vcf $input\
         --remove blacklisted.individuals.txt\
         --recode-INFO-all\
+	--mac 1 \
         --out populations.mac1\
         --recode\
         --snps snp_id.txt\
@@ -154,6 +155,7 @@ bcftools reheader --samples new_sample_name.txt -o ${input%.recode.vcf.gz}.renam
 #this is our final vcf ready for estimating genetic diversity and structure 
 #see below for filtering for GEA
 
+```
 
 ### 2.2. Quality check
 
@@ -795,7 +797,7 @@ To reproduce the Figure 3 simply run:
 Rscript 00-scripts/gea/Figure3.R
 ``` 
 
-This should automatically produce the Figure3 from our manuscrit
+This should automatically produce the Figure3 from our manuscript
 
  
 ## 6. Looking for parallelism
@@ -805,19 +807,112 @@ Run the Rscript
 00-scripts/gea/05.Figure4.R 
 ```
 
+This should automatically produce the Figure4 from our manuscript as well as some statisticall tests
 I'll document all of this later.  
 
 
-## 7. PBS analyses 
+## 7. plotting LFMM results:
+
+this can be done with CMplot 
+see script 00-scripts/gea/LFMM_plot_FigureS10.R or simple code below:
+
+```R
+## load libs
+libs <- c('dplyr','data.table', 'magrittr', 'cowplot','CMplot', 'gridGraphics')
+invisible(lapply(libs, library, character.only = TRUE))
+
+pval_loc <- fread("zcat adjust_pvaluesBH_lfkmm_K.20.txt.gz")
+
+#we will remove scaffold to plot only the 30 chromosome + the 8 dups.
+pvalsub <- pval_loc %>% filter(!(grepl("scaff", V1)))
+pvalsub$V1<- gsub("Okis","",pvalsub$V1)
+pvalsub$V1<- gsub("LG","",pvalsub$V1)
+pvalsub$V1<- gsub("_hom","",pvalsub$V1)
+
+#temperature
+tempplot <- select(pvalsub,V3,V1,V2,Temperature1, Temperature2, Temperature3, Temperature4) %>% 
+    set_colnames(.,c("SNP","Chromosome","Position",
+    "TemperaturePCaxis1","TemperaturePCaxis2","TemperaturePCaxis3","TemperaturePCaxis4"))
+templot <- as.data.frame(tempplot)
+
+#precipitation
+precplot <- select(pvalsub,V3,V1,V2,Precipitation1, Precipitation2, Precipitation3) %>% 
+    set_colnames(.,c("SNP","Chromosome","Position",
+    "PrecipitationPCaxis1","PrecipitationPCaxis2","PrecipitationPCaxis3"))
+precplot <- as.data.frame(precplot)
+
+#geology
+geolplot <- select(pvalsub,V3,V1,V2,Geology) %>% 
+    set_colnames(.,c("SNP","Chromosome","Position","Geology"))
+geolplot <- as.data.frame(geolplot)
+
+
+CMplot(geolplot, plot.type="m", LOG10=TRUE, ylim=NULL, threshold=NULL ,
+       chr.den.col = c("darkgreen", "yellow", "red"),
+       signal.pch = c(19,19),file="pdf",memo="",dpi=300,
+       file.output = F,
+       verbose = TRUE,
+       width=14,height=6, chr.labels.angle=45)
+
+p3 <- recordPlot()
+CMplot(templot, plot.type="m", multracks = TRUE, LOG10=TRUE, ylim=NULL, threshold=NULL, mar = c(5,8,3,3),
+       chr.den.col = c("darkgreen", "yellow", "red"),
+       signal.pch = c(19,19),file="pdf",memo="",dpi=300,
+       file.output = F,
+       verbose = TRUE,
+       width=14,height=6, chr.labels.angle=45)
+p1 <- recordPlot()
+
+
+CMplot(precplot, plot.type="m", multracks = TRUE, LOG10=TRUE, ylim=NULL, threshold=NULL, mar = c(5,8,3,3),
+       chr.den.col = c("darkgreen", "yellow", "red"),
+       signal.pch = c(19,19),file="pdf",memo="",dpi=300,
+       file.output = F,
+       verbose = TRUE,
+       width=14,height=6, chr.labels.angle=45)
+p2 <- recordPlot()
+
+#export final figure
+pdf(file="FigureS10.pdf",15,20)
+plot_grid(p1, p2,p3, 
+    ncol = 1, 
+    align = "v", 
+    labels=c("A - Temperature", "B - Precipitation", "C - Geology") )
+dev.off()
+
+```
+
+## 8. PBS analyses 
 
 * ANGSD analyses:
+
+The major reason for using ANGSD was to compute the PBS score from Yi et al. 2010 (although it can be computed from the vcf directly)
+
+All steps to run ANGSD are found [here](https://github.com/QuentinRougemont/utility_scripts/tree/master/00.ANGSD). They necessitate to start from the bam files.  
+
+* **important note**
+
+before running Fst or PBS I used a three-species outgroup sequence for proper folding made of Atlantic salmon, Chinook salmon and Sockeye salmon. 
+Whole genome sequences were used and mapped to the coho salmon genome using bwa-mem.
+The resulting bam were processed to reconstruct an ancestral sequence with [ancestral_seq.sh](https://github.com/QuentinRougemont/utility_scripts/blob/master/00.ANGSD/ancestral_seq.sh) 
+
+Then Simply follow the script in the order of their number:  
+
+ * 1. 00_angsd_bam_to_saf.sh
+ * 2. 01_1dsfs.sh
+ * 3. 02_2dsfs.sh
+ * 4. 04.pairwise_fst_sliding_window.sh #to get only Fst
+ * 5. 05_PBS_sliding_windows.sh #to get Fst and PBS
+
+
+
+* Produce graph: I used CMplot to make all manahatan plot. The used is straightforward.
+
+
 (To fill)
 
-* Produce graph
-(To fill)
 
-
-## 8. Association between recombination and outliers
+## 9. Association between recombination and outliers
 
 1. estimate recombination
 
@@ -834,26 +929,36 @@ The scripts [here](https://github.com/QuentinRougemont/LDhat_workflow/blob/maste
 
 2. identify outliers  
 
-outliers were identified in step 5 or step 7 for the RDA
+outliers were identified in the steps above for the RDA
 
-3. test for how outlier responds in a parallel and how they are shared spatially:
+3. test for how outlier (GEA and Fst/PBS) are influenced by recombination:
 
 Look at the script 
 
 ```
-00-scripts/gea/05.Figure4.R
+00-scripts/recombination/association_recombination_GEA.R
 ```
 
-I'll doucment all this later
+This will allow to perform statistical test: 
 
-(To fill)
+	* wilcoxon test of difference in mean recombination rate between outliers vs neutral region
+	* mixed models test 
+
+A plot like the one in FigS15 will be produced. 
+
+In addition it is possible to explore this by considering either:
+	* shared outliers between LFMM & RDA
+	* RDA only outliers
+	* LFMM only outliers
+
+	* outliers that fall into areas of residual tetraploidy can be investigated separately as well since there's less variance in recombination in these region
 
 
-## 9. looking for candidate
+## 10. looking for candidate
   * No GO enrichment instead I only use SNPeff and look for meaningfull outliers.
 
 
-## 10. Other stuff 
+## 11. Other stuff 
  * below is a zoomable map for BC/Thompson/HaidaGwaii that include all sample sites used here. 
  * may be usefull for users  
  * This map was obtained with very simple code in R
