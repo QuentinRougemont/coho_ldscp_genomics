@@ -36,7 +36,7 @@ function strata () { cat <(grep "CHR" "$1" ) |\
               sed 's/_/\t/g' | awk '{print $1"\t"$1"_"$2}' > "$2"; }
 ```
 
-# DATA
+# DATA:
 
 part of the RAW data are deposited on NCBI [PRJNA647050](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA647050). The remaining samples should be available soon  
 
@@ -66,7 +66,7 @@ additional metadata (individual name, river abbreviation, Latitude, Longitude, r
 
 ## 2. Filter vcf and perform quality checks
 
-To reproduce the filtering you can access the raw vcf from dryad  
+To reproduce the filtering you can access the raw vcf from dryad
 
 ### 2.1 Filtering vcf
 
@@ -108,6 +108,8 @@ vcftools \
 
 sed 1d out.frq | 's/:/\t/g' |cut -f 1,2,7,8 out.frq > frq2  
 
+#then I use a horrible bash script to create a whitelist of independant SNPs. 
+#A script in Eric Normandeau's [workflow](https://github.com/enormandeau/stacks_workflow/blob/master/00-scripts/utility_scripts/extract_snp_with_max_maf.py) should do the same more efficiently.
 
 #compute missing rate per individuals  
 vcftools --vcf $input --missing-indv --out individuals
@@ -246,7 +248,7 @@ Rscript ./00-scripts/diversity/01.hierfstats.R
 
 Then we will perform plots of the correlation between the distance to the southernmost site and Bst and Hs statistics. 
 
-### Plotting diversity  
+### Plotting diversity
 
  
 Run:
@@ -760,7 +762,7 @@ this will run rather rapidly with approximately 20-30Gb of RAM
 
 
 
-## 5.3.2 RDA  
+## 5.3.2 RDA
 
 
 Next we run the RDA in 2 steps
@@ -776,7 +778,7 @@ Run the script :
 ./00-scripts/gea/02.RDA_significance_testing.R
 ```
 
-it takes a few hours on a cluster
+it takes a few hours (~one night) on a cluster
 
 * 2. identify outliers:
 
@@ -786,7 +788,10 @@ run the script :
 Rscript 00-scripts/gea/03.RDA_identify_outliers.R
 ```
 
-this will write the number of outlier in a file
+this will write the number of outlier in a file as well as other useful data such as the number of outliers in each chromosomes.  
+
+We used the approach of Forester et al. (2018) to identify outliers.  
+
 
 
 ## 5.3.3. Create a RDA Figure and LFMM plot:
@@ -799,6 +804,7 @@ Rscript 00-scripts/gea/Figure3.R
 
 This should automatically produce the Figure3 from our manuscript
 
+
  
 ## 6. Looking for parallelism
 
@@ -808,6 +814,7 @@ Run the Rscript
 ```
 
 This should automatically produce the Figure4 from our manuscript as well as some statisticall tests
+See explanation in our methods of the manuscript  
 I'll document all of this later.  
 
 
@@ -884,7 +891,7 @@ dev.off()
 
 ## 8. PBS analyses 
 
-* ANGSD analyses:
+*  **ANGSD analyses:**
 
 The major reason for using ANGSD was to compute the PBS score from Yi et al. 2010 (although it can be computed from the vcf directly)
 
@@ -892,21 +899,29 @@ All steps to run ANGSD are found [here](https://github.com/QuentinRougemont/util
 
 * **important note**
 
-before running Fst or PBS I used a three-species outgroup sequence for proper folding made of Atlantic salmon, Chinook salmon and Sockeye salmon. 
-Whole genome sequences were used and mapped to the coho salmon genome using bwa-mem.
+before running Fst or PBS I used a three-species outgroup sequence for proper folding made of :
+ * 1. [Atlantic salmon](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA287458) n = 5 individuals 
+ * 2. [Rainbow trout](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA386519) n = 5 individuals and 
+ * 3. [Sockeye salmon](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA530256) n = 3 individuals
+
+Whole genome sequences were:
+ * processed with [fastp](https://github.com/QuentinRougemont/gatk_haplotype/blob/master/gatk4/01_scripts/01_fastp.sh) 
+ * mapped to the coho salmon genome using [bwa-mem](https://github.com/QuentinRougemont/gatk_haplotype/blob/master/gatk4/01_scripts/02_bwa_mem2_align_reads_PE.sh). 
+ * marked for duplicates with [picard](https://github.com/QuentinRougemont/gatk_haplotype/blob/master/gatk4/01_scripts/03_remove_duplicates.sh)  
+
 The resulting bam were processed to reconstruct an ancestral sequence with [ancestral_seq.sh](https://github.com/QuentinRougemont/utility_scripts/blob/master/00.ANGSD/ancestral_seq.sh) 
 
 Then Simply follow the script in the order of their number:  
 
- * 1. 00_angsd_bam_to_saf.sh
- * 2. 01_1dsfs.sh
- * 3. 02_2dsfs.sh
- * 4. 04.pairwise_fst_sliding_window.sh #to get only Fst
- * 5. 05_PBS_sliding_windows.sh #to get Fst and PBS
+ * 1. [00_angsd_bam_to_saf.sh](https://github.com/QuentinRougemont/utility_scripts/blob/master/00.ANGSD/00_angsd_bam_to_saf.sh) 
+ * 2. [01_1dsfs.sh](https://github.com/QuentinRougemont/utility_scripts/blob/master/00.ANGSD/01_1dsfs.sh)
+ * 3. [02_2dsfs.sh](https://github.com/QuentinRougemont/utility_scripts/blob/master/00.ANGSD/02_2dsfs.sh)
+ * 4. [04.pairwise_fst_sliding_window.sh](https://github.com/QuentinRougemont/utility_scripts/blob/master/00.ANGSD/04.pairwise_fst_sliding_window.sh) #to get only Fst
+ * 5. [05_PBS_sliding_windows.sh](https://github.com/QuentinRougemont/utility_scripts/blob/master/00.ANGSD/05_PBS_sliding_windows.sh) #to get Fst and PBS
 
 
 
-* Produce graph: I used CMplot to make all manahatan plot. 
+* Produce graph: I used [CMplot](https://github.com/YinLiLin/CMplot) to make all manhattan plot. 
 
 The used is straightforward:
 
@@ -986,7 +1001,7 @@ CMplot(distplot,type="p",plot.type="m", multracks=TRUE,
 
 ## 9. Association between recombination and outliers
 
-1. estimate recombination
+1. **estimate recombination**
 
 Recombination was estimated using 30X whole Genome data from this [preprint](https://www.biorxiv.org/content/10.1101/732750v2).  
 (note that the WGS data were removed from the published article and will be published later)   
@@ -999,11 +1014,11 @@ Then results were summarized into 250 kb windows and each populations were conca
 The scripts [here](https://github.com/QuentinRougemont/LDhat_workflow/blob/master/02-scripts/06.run_slidingwindows.sh) should enables to summarize the data with a bit of modifications depending on your data
 
 
-2. identify outliers  
+2. **identify outliers**  
 
 outliers were identified in the steps above for the RDA
 
-3. test for how outlier (GEA and Fst/PBS) are influenced by recombination:
+3. **test for how outlier (GEA and Fst/PBS) are influenced by recombination:**
 
 Look at the script 
 
@@ -1019,13 +1034,17 @@ This will allow to perform statistical test:
 A plot like the one in FigS15 will be produced. 
 ![example_graph](https://github.com/QuentinRougemont/coho_ldscp_genomics/blob/main/pictures/FigS15.git.png)
 
+Here we only have the population scale recombination rate (rho = 4*Ne*r)  
 
 In addition it is possible to explore this by considering either:  
 	* shared outliers between LFMM & RDA  
 	* RDA only outliers  
 	* LFMM only outliers  
+	* outliers that fall into areas of residual tetraploidy can be investigated separately 
+	since there's less variance in recombination in these region  
 
-	* outliers that fall into areas of residual tetraploidy can be investigated separately as well since there's less variance in recombination in these region
+	There was no difference in recombination when considering the few outliers on region of residual tetraploidy.  
+        Obviously, removing these region increased the strength of the signal   
 
 
 ## 10. looking for candidate
@@ -1036,7 +1055,7 @@ In addition it is possible to explore this by considering either:
 
 
 
-## 11. Other stuff 
+## 11. Other stuff
 
  * below is a zoomable map for BC/Thompson/HaidaGwaii that include all sample sites used here. 
  * may be usefull for users  
