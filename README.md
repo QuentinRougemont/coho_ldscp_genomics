@@ -462,9 +462,9 @@ Populations further away in space are also further away on the graph.
 
 In the panel B/C I zoomed in the location of HaidaGwaii because there are few samples there. We can see that we are able to finely discriminate all samples and that those very closed in space are very closed in the Graph.   
 
-The same results could be obtained by running many separate PCA. Here only one run was necessary.
+The same results could be obtained by running many separate PCA on subset of data. Here only one run was necessary.
 
-At the same time therese strong IBD in our daya.
+At the same time there is strong IBD in our data.
 
 
 here's an example with pure geography (IBD): 
